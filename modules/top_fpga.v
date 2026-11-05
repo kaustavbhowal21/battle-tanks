@@ -18,12 +18,15 @@
 `define TOP_FPGA_V
 
 module top_fpga #(
-    parameter IMEM_HEX = "imem.hex",
-    parameter DMEM_HEX = "dmem.hex",
+    // "" = use the firmware image embedded in modules/cpu/firmware_*.vh (default,
+    // robust for Vivado synthesis). Pass a file name to load a .hex instead.
+    parameter IMEM_HEX = "",
+    parameter DMEM_HEX = "",
     parameter IMEMSIZE = 4096,
     parameter DMEMSIZE = 4096,
     parameter CLK_PER_MS = 50_000,
-    parameter DEBOUNCE_MAX = 20'd500_000
+    parameter DEBOUNCE_MAX = 20'd150_000,
+    parameter MIN_HOLD     = 21'd1_000_000
 )(
     input  wire        clk,            // 100 MHz board oscillator (pin E3)
     input  wire        reset,          // active-low reset button (pin C12)
@@ -40,7 +43,11 @@ module top_fpga #(
     output wire [3:0]  vga_g,
     output wire [3:0]  vga_b,
     output wire        vga_hsync,
-    output wire        vga_vsync
+    output wire        vga_vsync,
+
+    // Audio PWM Outputs (Nexys A7 3.5mm Mono Audio Jack J8)
+    output wire        aud_pwm,
+    output wire        aud_sd
 );
 
     // =========================================================================
@@ -95,10 +102,23 @@ module top_fpga #(
     wire [31:0] dmem_cpu_rdata;
 
     // Common memory bus address and strobes
-    // Write cycle uses write_address; read cycle uses read_address
+    // mem_bus_addr is the WRITE-side address (used for every write decode).
+    // Loads (EX stage) and stores (WB stage) can be issued in the same clock, so
+    // reads MUST NOT be steered by the write address: they use their own
+    // dmem_read_address path (mem_rd_addr / mem_rd_addr_q below).
     wire [31:0] mem_bus_addr = dmem_write_ready ? dmem_write_address : dmem_read_address;
     wire        mem_bus_we   = dmem_write_ready;
     wire        mem_bus_re   = dmem_read_ready;
+
+    // Read address, live (for synchronous RAM-style reads) and registered by one
+    // clock (for peripherals whose read data is muxed combinationally in the cycle
+    // AFTER the load, aligned with the interconnect's registered chip-selects).
+    wire [31:0] mem_rd_addr = dmem_read_address;
+    reg  [31:0] mem_rd_addr_q;
+    always @(posedge clk_sys or negedge rst_n) begin
+        if (!rst_n) mem_rd_addr_q <= 32'd0;
+        else        mem_rd_addr_q <= mem_rd_addr;
+    end
 
     // Peripheral read data lines (1-cycle latency)
     wire [31:0] rd_dmem;
@@ -156,7 +176,7 @@ module top_fpga #(
         .HEX_FILE(DMEM_HEX)
     ) DMEM (
         .clk   (clk_sys),
-        .re    (dmem_read_ready && cs_dmem),
+        .re    (dmem_read_ready && !mem_rd_addr[31]),
         .raddr (dmem_read_address),
         .rdata (rd_dmem),
         .we    (dmem_write_ready && cs_dmem),
@@ -172,6 +192,7 @@ module top_fpga #(
         .clk         (clk_sys),
         .reset_n     (rst_n),
         .d_addr      (mem_bus_addr),
+        .d_raddr     (mem_rd_addr),
         .d_wdata     (dmem_write_data),
         .d_wstrb     (dmem_write_byte),
         .d_we        (mem_bus_we),
@@ -204,13 +225,14 @@ module top_fpga #(
     wire [5:0] p2_btn_debounced;
 
     input_controller #(
-        .DEBOUNCE_MAX(DEBOUNCE_MAX)
+        .DEBOUNCE_MAX(DEBOUNCE_MAX),
+        .MIN_HOLD    (MIN_HOLD)
     ) u_input (
         .clk           (clk_sys),
         .reset_n       (rst_n),
         .p1_btn_raw    (p1_btn_raw),
         .p2_btn_raw    (p2_btn_raw),
-        .d_addr        (mem_bus_addr),
+        .d_addr        (mem_rd_addr_q),
         .rd_in         (rd_in),
         .p1_btn_stable (p1_btn_debounced),
         .p2_btn_stable (p2_btn_debounced)
@@ -276,6 +298,7 @@ module top_fpga #(
         .reset_n       (rst_n),
         .wr_en_maze    (wr_en_maze),
         .d_addr        (mem_bus_addr),
+        .d_raddr       (mem_rd_addr),
         .d_wdata       (dmem_write_data),
         .rd_maze       (rd_maze),
 
@@ -307,6 +330,7 @@ module top_fpga #(
 
         .wr_en_col   (wr_en_col),
         .d_addr      (mem_bus_addr),
+        .d_raddr     (mem_rd_addr_q),
         .d_wdata     (dmem_write_data),
         .rd_col      (rd_col)
     );
@@ -436,15 +460,77 @@ module top_fpga #(
     );
 
     // =========================================================================
-    // 11. Status LEDs (Live hardware telemetry)
+    // 11. Status LEDs (human-readable hardware telemetry)
+    //
+    // The old mapping drove LD15..LD4 straight from PC[13:2]. The PC changes
+    // at 50 MHz, so those LEDs can never be seen "changing": a healthy game
+    // shows a fixed dim pattern, and a CPU running garbage (e.g. imem.hex not
+    // loaded -> all-zero ROM) toggles every bit and looks like ALL LEDs ON.
+    // The LEDs now show slow, meaningful status instead:
+    //   LD15     : 1.5 Hz heartbeat            (clock + reset OK)
+    //   LD14     : game-loop heartbeat         (toggles every 16 game frames:
+    //              ~2 Hz blink = CPU is running the C game loop)
+    //   LD13..8  : P1 debounced buttons        [FWD,BWD,L,R,SHOOT,SPEC] = [8..13]
+    //   LD7..4   : P2 debounced FWD,BWD,L,R    = [4..7]
+    //   LD3      : CPU exception, LATCHED until reset (illegal instr/misaligned)
+    //   LD2..0   : tank / bullet-bullet / wall collision flags
     // =========================================================================
+    reg [24:0] hb_cnt;
+    always @(posedge clk_sys or negedge rst_n) begin
+        if (!rst_n) hb_cnt <= 25'd0;
+        else        hb_cnt <= hb_cnt + 25'd1;
+    end
+
+    // One write to REG_SPRITE_P1_TANK (0x8000_0040) happens per game frame
+    reg [4:0] frame_cnt;
+    always @(posedge clk_sys or negedge rst_n) begin
+        if (!rst_n)
+            frame_cnt <= 5'd0;
+        else if (wr_en_spr && (mem_bus_addr[7:2] == 6'd16))
+            frame_cnt <= frame_cnt + 5'd1;
+    end
+
+    reg exception_latched;
+    always @(posedge clk_sys or negedge rst_n) begin
+        if (!rst_n)         exception_latched <= 1'b0;
+        else if (exception) exception_latched <= 1'b1;
+    end
+
     assign led = {
-        pc_out[13:2],                  // [15:4] active instruction PC word
-        exception,                     // [3] illegal instruction / alignment exception
+        hb_cnt[24],                    // [15] heartbeat
+        frame_cnt[4],                  // [14] game loop alive
+        p1_btn_debounced[5:0],         // [13:8] P1 buttons
+        p2_btn_debounced[3:0],         // [7:4]  P2 move/turn switches
+        exception_latched,             // [3] latched CPU exception
         u_collision.tank_hit_any,      // [2] bullet-tank collision detected
         u_collision.bb_any,            // [1] bullet-bullet collision detected
         u_collision.wall_any           // [0] bullet-wall collision detected
     };
+
+
+    // =========================================================================
+    // 12. Hardware Sound Engine (Autonomous Event Sniffer & Audio Synthesizer)
+    // =========================================================================
+    sound_engine #(
+        .CLK_FREQ_HZ (50_000_000),
+        .STARTUP_MS  (20)
+    ) u_sound (
+        .clk          (clk_sys),
+        .reset_n      (rst_n),
+        .bullet_act   (bullet_act),
+        .hp1          (hp1),
+        .hp2          (hp2),
+        .wall_hit_any (u_collision.wall_any),
+        .tank_hit_any (u_collision.tank_hit_any),
+        .trig_fire    (1'b0),
+        .trig_bounce  (1'b0),
+        .trig_hit     (1'b0),
+        .trig_destroy (1'b0),
+        .sfx_active   (),
+        .current_sfx  (),
+        .aud_pwm      (aud_pwm),
+        .aud_sd       (aud_sd)
+    );
 
 endmodule
 
