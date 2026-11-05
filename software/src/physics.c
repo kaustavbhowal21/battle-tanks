@@ -84,10 +84,10 @@ void physics_reset_maze(void) {
             uint32_t tile = TILE_EMPTY;
             if (r == 0 || r == 19 || c == 0 || c == 19)
                 tile = TILE_STEEL_SOLID;                 // outer border
-            else if ((r % 4 == 0) && (c % 4 == 0))
-                tile = TILE_STEEL_SOLID;                 // interior pillars
-            else if (r == 10 && c >= 8 && c <= 11)
-                tile = TILE_BRICK_DESTRUCTIBLE;          // breakable bricks
+            else if ((r==3||r==6||r==13||r==16) && (c==3||c==6||c==13||c==16))
+                tile = TILE_STEEL_SOLID;                 // 16 symmetric interior pillars
+            else if ((r == 9 || r == 10) && (c == 9 || c == 10))
+                tile = TILE_BRICK_DESTRUCTIBLE;          // 2x2 centre brick block
             MAZE_TILE(r, c) = tile;
         }
     }

@@ -494,39 +494,41 @@ static void test_suite_bricks_reset_and_tank_blocking(void) {
     reset_mock_mmio();
     game_init();
     int broken = 0;
-    for (int c = 8; c <= 11; c++) {
-        MAZE_TILE(10, c) = TILE_BRICK_DESTRUCTIBLE;
+    for (int r2 = 9; r2 <= 10; r2++) {
+        for (int c2 = 9; c2 <= 10; c2++) {
+        MAZE_TILE(r2, c2) = TILE_BRICK_DESTRUCTIBLE;
         g_bullets[0].active  = 1;
         g_bullets[0].bounces = 0;
         g_bullets[0].is_big  = 0;
-        g_bullets[0].x_fp  = TO_FP(c * 24 + 10);
-        g_bullets[0].y_fp  = TO_FP(10 * 24 - 10);
+        g_bullets[0].x_fp  = TO_FP(c2 * 24 + 10);
+        g_bullets[0].y_fp  = TO_FP(r2 * 24 - 10);
         g_bullets[0].vx_fp = 0;
         g_bullets[0].vy_fp = TO_FP(4);
         REG_COLLISION_WALL = 1U << 0;               // flag set every time
         for (int f = 0; f < 6; f++) game_update_bullets();
-        if (MAZE_TILE(10, c) == TILE_EMPTY) broken++;
+        if (MAZE_TILE(r2, c2) == TILE_EMPTY) broken++;
+        }
     }
-    TEST_ASSERT(broken == 4, "All four bricks break (never stops breaking after the first ones)");
+    TEST_ASSERT(broken == 4, "All four 2x2 centre bricks break (never stops breaking after the first ones)");
 
     // --- Maze is restored on game_init (reset) ---
     reset_mock_mmio();
     game_init();
-    TEST_ASSERT(MAZE_TILE(10, 8) == TILE_BRICK_DESTRUCTIBLE, "game_init places bricks at row 10, col 8");
-    TEST_ASSERT(MAZE_TILE(10, 11) == TILE_BRICK_DESTRUCTIBLE, "game_init places bricks at row 10, col 11");
-    TEST_ASSERT(MAZE_TILE(10, 7) == TILE_EMPTY && MAZE_TILE(10, 12) == TILE_EMPTY, "Floor around bricks is empty");
+    TEST_ASSERT(MAZE_TILE(9,  9)  == TILE_BRICK_DESTRUCTIBLE, "game_init places 2x2 brick at (9,9)");
+    TEST_ASSERT(MAZE_TILE(10, 10) == TILE_BRICK_DESTRUCTIBLE, "game_init places 2x2 brick at (10,10)");
+    TEST_ASSERT(MAZE_TILE(9, 8) == TILE_EMPTY && MAZE_TILE(10, 11) == TILE_EMPTY, "Floor around 2x2 centre bricks is empty");
     TEST_ASSERT(MAZE_TILE(0, 0) == TILE_STEEL_SOLID && MAZE_TILE(19, 5) == TILE_STEEL_SOLID, "Border is steel");
-    TEST_ASSERT(MAZE_TILE(4, 4) == TILE_STEEL_SOLID && MAZE_TILE(8, 12) == TILE_STEEL_SOLID, "Pillars are steel");
+    TEST_ASSERT(MAZE_TILE(3, 3) == TILE_STEEL_SOLID && MAZE_TILE(6, 13) == TILE_STEEL_SOLID, "Pillars are steel (symmetric layout: {3,6,13,16}x{3,6,13,16})");
     TEST_ASSERT(MAZE_TILE(5, 5) == TILE_EMPTY, "Open floor is empty");
-    MAZE_TILE(10, 8) = TILE_EMPTY;
-    MAZE_TILE(10, 9) = TILE_EMPTY;
+    MAZE_TILE(9,  9)  = TILE_EMPTY;
+    MAZE_TILE(9,  10) = TILE_EMPTY;
+    MAZE_TILE(10, 9)  = TILE_EMPTY;
     MAZE_TILE(10, 10) = TILE_EMPTY;
-    MAZE_TILE(10, 11) = TILE_EMPTY;
     MAZE_TILE(5, 5) = TILE_STEEL_SOLID;
     game_init();                                     // "reset game"
-    TEST_ASSERT(MAZE_TILE(10, 8) == TILE_BRICK_DESTRUCTIBLE && MAZE_TILE(10, 9) == TILE_BRICK_DESTRUCTIBLE &&
-                MAZE_TILE(10, 10) == TILE_BRICK_DESTRUCTIBLE && MAZE_TILE(10, 11) == TILE_BRICK_DESTRUCTIBLE,
-                "Broken bricks are back after reset");
+    TEST_ASSERT(MAZE_TILE(9, 9) == TILE_BRICK_DESTRUCTIBLE && MAZE_TILE(9, 10) == TILE_BRICK_DESTRUCTIBLE &&
+                MAZE_TILE(10, 9) == TILE_BRICK_DESTRUCTIBLE && MAZE_TILE(10, 10) == TILE_BRICK_DESTRUCTIBLE,
+                "2x2 centre bricks are back after reset");
     TEST_ASSERT(MAZE_TILE(5, 5) == TILE_EMPTY, "Stray tile removed after reset");
 
     // --- Tank vs tank blocking ---

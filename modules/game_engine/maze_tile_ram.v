@@ -61,13 +61,14 @@ module maze_tile_ram (
                     ram_copy_v[idx] = 2'b10;
                     ram_copy_c[idx] = 2'b10;
                 end
-                // Interior pillar walls: indestructible steel (code 2)
-                else if ((r % 4 == 0) && (c % 4 == 0)) begin
+                // 16 interior steel pillars, symmetric for both players:
+                // Rows/cols in {3,6,13,16} -> 19-3=16, 19-6=13, self-mapping under 180deg rotation
+                else if ((r==3||r==6||r==13||r==16) && (c==3||c==6||c==13||c==16)) begin
                     ram_copy_v[idx] = 2'b10;
                     ram_copy_c[idx] = 2'b10;
                 end
-                // Breakable wall obstacles in the centre: destructible brick (code 1)
-                else if ((r == 10 && (c >= 8 && c <= 11))) begin
+                // Breakable wall obstacles: 2x2 destructible brick block at exact centre
+                else if ((r == 9 || r == 10) && (c == 9 || c == 10)) begin
                     ram_copy_v[idx] = 2'b01;
                     ram_copy_c[idx] = 2'b01;
                 end

@@ -82,9 +82,9 @@ module maze_tile_renderer (
                         maze_wall <= 1'b0;
                         // Subtle arena floor grid
                         if ((sub_x_d == 5'd0) || (sub_y_d == 5'd0))
-                            maze_rgb <= 12'h112; // Dark tile grid line
+                            maze_rgb <= 12'h010; // Dark tile grid line
                         else
-                            maze_rgb <= 12'h081; // Dark arena green/gray floor
+                            maze_rgb <= 12'h031; // Darker arena green floor
                     end
 
                     2'b01: begin // Destructible Wall (Brick)
@@ -101,12 +101,19 @@ module maze_tile_renderer (
                     2'b10: begin // Indestructible Perimeter / Steel Wall
                         maze_wall <= 1'b1;
                         // Steel plate bevel & rivet border
+                        // New stone texture: dark cracked rock
                         if ((sub_x_d == 5'd0) || (sub_y_d == 5'd0))
-                            maze_rgb <= 12'hCCD; // Highlight top-left bevel
+                            maze_rgb <= 12'h556; // Top-left lighter edge
                         else if ((sub_x_d == 5'd23) || (sub_y_d == 5'd23))
-                            maze_rgb <= 12'h445; // Shadow bottom-right bevel
+                            maze_rgb <= 12'h112; // Bottom-right dark shadow
+                        else if ((sub_x_d == 5'd11 || sub_x_d == 5'd12) && (sub_y_d < 5'd12))
+                            maze_rgb <= 12'h222; // Vertical crack left
+                        else if ((sub_x_d == 5'd11 || sub_x_d == 5'd12) && (sub_y_d >= 5'd12))
+                            maze_rgb <= 12'h222; // Vertical crack right offset
+                        else if (sub_y_d == 5'd11 || sub_y_d == 5'd12)
+                            maze_rgb <= 12'h222; // Horizontal crack
                         else
-                            maze_rgb <= 12'h889; // Solid steel plate body
+                            maze_rgb <= 12'h445; // Dark stone body
                     end
 
                     2'b11: begin // Reinforced / Corner Wall

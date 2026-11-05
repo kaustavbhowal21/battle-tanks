@@ -117,21 +117,21 @@ module sprite_engine (
             // Left/Right treads
             if ((dx_t1 < 10'd3) || (dx_t1 >= 10'd17)) begin
                 hit_t1 = 1'b1;
-                rgb_t1 = (dy_t1[1] == 1'b0) ? 12'h040 : 12'h070; // Tread treads pattern
+                rgb_t1 = (dy_t1[1] == 1'b0) ? 12'h024 : 12'h047; // Tread treads pattern (blue)
             end
             // Main body
             else if ((dy_t1 >= 10'd3) && (dy_t1 < 10'd17)) begin
                 // Turret center dome
                 if ((dx_t1 >= 10'd7) && (dx_t1 <= 10'd12) && (dy_t1 >= 10'd7) && (dy_t1 <= 10'd12)) begin
                     hit_t1 = 1'b1;
-                    rgb_t1 = 12'h0F4; // Bright green dome
+                    rgb_t1 = 12'h4CF; // Bright blue dome
                 end else begin
                     hit_t1 = 1'b1;
-                    rgb_t1 = 12'h0B0; // Tank hull green
+                    rgb_t1 = 12'h06C; // Tank hull blue
                 end
             end
             // Turret gun barrel (line in the direction of tank_ang1)
-            if (barrel_hit(dx_t1, dy_t1, tank_ang1)) begin hit_t1 = 1'b1; rgb_t1 = 12'h0F4; end
+            if (barrel_hit(dx_t1, dy_t1, tank_ang1)) begin hit_t1 = 1'b1; rgb_t1 = 12'h4CF; end
         end
     end
 
