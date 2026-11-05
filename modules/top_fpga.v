@@ -26,7 +26,8 @@ module top_fpga #(
     parameter DMEMSIZE = 4096,
     parameter CLK_PER_MS = 50_000,
     parameter DEBOUNCE_MAX = 20'd150_000,
-    parameter MIN_HOLD     = 21'd1_000_000
+    parameter MIN_HOLD     = 21'd1_000_000,
+    parameter SEG_SCAN_BIT = 15
 )(
     input  wire        clk,            // 100 MHz board oscillator (pin E3)
     input  wire        reset,          // active-low reset button (pin C12)
@@ -37,6 +38,11 @@ module top_fpga #(
 
     // Status / debug LEDs (pins H17..V11)
     output wire [15:0] led,
+
+    // 7-Segment Display Outputs (Nexys A7 DISP1 & DISP2 combined)
+    output wire [6:0]  seg,            // Active-low cathodes {CG, CF, CE, CD, CC, CB, CA}
+    output wire [7:0]  an,             // Active-low anodes AN[7:0] (AN[7:4]=DISP1, AN[3:0]=DISP2)
+    output wire        dp,             // Active-low decimal point
 
     // VGA 12-bit Video DAC Outputs (Nexys A7)
     output wire [3:0]  vga_r,
@@ -531,6 +537,76 @@ module top_fpga #(
         .aud_pwm      (aud_pwm),
         .aud_sd       (aud_sd)
     );
+
+
+    // =========================================================================
+    // 13. 8-Digit 7-Segment Winner Display (Nexys A7 DISP1 & DISP2 Combined)
+    //
+    // Player 1 tank is BLUE (hp1); Player 2 tank is RED (hp2).
+    //   - Both hp1 > 0 and hp2 > 0 : Display OFF (game in progress)
+    //   - hp1 == 0 and hp2 > 0     : "RED  WON" (Player 2 Red wins)
+    //   - hp2 == 0 and hp1 > 0     : "BLUE WON" (Player 1 Blue wins)
+    //   - hp1 == 0 and hp2 == 0    : "  DRAW  " (Simultaneous loss / draw)
+    //
+    // Active-low segment encoding: seg[6:0] = {CG, CF, CE, CD, CC, CB, CA}
+    // =========================================================================
+    localparam [6:0] SEG_BLANK = 7'b111_1111; // ' '
+    localparam [6:0] SEG_B     = 7'b000_0011; // 'b' (B)
+    localparam [6:0] SEG_L     = 7'b100_0111; // 'L'
+    localparam [6:0] SEG_U     = 7'b100_0001; // 'U'
+    localparam [6:0] SEG_E     = 7'b000_0110; // 'E'
+    localparam [6:0] SEG_R     = 7'b010_1111; // 'r' (R)
+    localparam [6:0] SEG_D     = 7'b010_0001; // 'd' (D)
+    localparam [6:0] SEG_A     = 7'b000_1000; // 'A'
+    localparam [6:0] SEG_W     = 7'b000_0001; // 'W'
+    localparam [6:0] SEG_O     = 7'b100_0000; // 'O'
+    localparam [6:0] SEG_N     = 7'b100_1000; // 'N'
+
+    wire p1_dead = (hp1 == 8'd0);
+    wire p2_dead = (hp2 == 8'd0);
+    wire [2:0] seg_digit_sel = hb_cnt[SEG_SCAN_BIT + 2 : SEG_SCAN_BIT];
+
+    reg [6:0] seg_char;
+    always @(*) begin
+        seg_char = SEG_BLANK;
+        if (p1_dead && p2_dead) begin
+            // Both lost at the same time -> "  DRAW  "
+            case (seg_digit_sel)
+                3'd5: seg_char = SEG_D;
+                3'd4: seg_char = SEG_R;
+                3'd3: seg_char = SEG_A;
+                3'd2: seg_char = SEG_W;
+                default: seg_char = SEG_BLANK;
+            endcase
+        end else if (p1_dead) begin
+            // P1 (Blue) health gone -> P2 (Red) wins -> "RED  WON"
+            case (seg_digit_sel)
+                3'd7: seg_char = SEG_R;
+                3'd6: seg_char = SEG_E;
+                3'd5: seg_char = SEG_D;
+                3'd2: seg_char = SEG_W;
+                3'd1: seg_char = SEG_O;
+                3'd0: seg_char = SEG_N;
+                default: seg_char = SEG_BLANK;
+            endcase
+        end else if (p2_dead) begin
+            // P2 (Red) health gone -> P1 (Blue) wins -> "BLUE WON"
+            case (seg_digit_sel)
+                3'd7: seg_char = SEG_B;
+                3'd6: seg_char = SEG_L;
+                3'd5: seg_char = SEG_U;
+                3'd4: seg_char = SEG_E;
+                3'd2: seg_char = SEG_W;
+                3'd1: seg_char = SEG_O;
+                3'd0: seg_char = SEG_N;
+                default: seg_char = SEG_BLANK;
+            endcase
+        end
+    end
+
+    assign seg = seg_char;
+    assign an  = (seg_char == SEG_BLANK) ? 8'hFF : ~(8'b0000_0001 << seg_digit_sel);
+    assign dp  = 1'b1;
 
 endmodule
 

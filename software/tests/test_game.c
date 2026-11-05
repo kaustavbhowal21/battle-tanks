@@ -123,36 +123,57 @@ static void test_suite_tank_steering(void) {
     reset_mock_mmio();
     game_init();
 
-    // Player 1 turns Right (+1)
+    // Player 1 turns Right (+1 = 22.5 deg) immediately on first pressed frame
     REG_P1_KEYS = BTN_RIGHT;
     game_update_tanks();
-    TEST_ASSERT(g_p1.angle == 1, "P1 angle rotates right: 0 -> 1");
+    TEST_ASSERT(g_p1.angle == 1, "P1 angle rotates right on initial press: 0 -> 1 (22.5 deg)");
 
-    // Turn Right again
+    // Holding button down for fewer than TURN_STEP_FRAMES frames does not spin further
+    for (int f = 1; f < TURN_STEP_FRAMES; f++) {
+        game_update_tanks();
+        TEST_ASSERT(g_p1.angle == 1, "P1 barrel rotation speed throttled while button held");
+    }
+
+    // At frame TURN_STEP_FRAMES while held, barrel advances to 45 deg (angle 2)
     game_update_tanks();
-    TEST_ASSERT(g_p1.angle == 2, "P1 angle rotates right: 1 -> 2");
+    TEST_ASSERT(g_p1.angle == 2, "P1 angle reaches 45 deg (angle 2) after TURN_STEP_FRAMES");
 
-    // Player 1 turns Left (-1)
+    // Releasing and tapping Left (-1) rotates back immediately on the tap
+    REG_P1_KEYS = 0;
+    game_update_tanks();
     REG_P1_KEYS = BTN_LEFT;
     game_update_tanks();
-    TEST_ASSERT(g_p1.angle == 1, "P1 angle rotates left: 2 -> 1");
+    TEST_ASSERT(g_p1.angle == 1, "P1 angle rotates left on tap: 2 -> 1");
 
-    // Player 1 turns Left past 0 (wrap-around to 15)
+    // Player 1 turns Left past 0 (wrap-around to 15) via button taps
+    REG_P1_KEYS = 0;
+    game_update_tanks();
+    REG_P1_KEYS = BTN_LEFT;
     game_update_tanks(); // 1 -> 0
+    REG_P1_KEYS = 0;
+    game_update_tanks();
+    REG_P1_KEYS = BTN_LEFT;
     game_update_tanks(); // 0 -> 15
     TEST_ASSERT(g_p1.angle == 15, "P1 angle wraps cleanly: 0 -> 15");
 
-    // Full 360 degree rotation (16 steps)
-    for (int i = 0; i < 16; i++) {
+    // Full 360 degree rotation (16 steps while holding button for 16 * TURN_STEP_FRAMES frames)
+    for (int i = 0; i < 16 * TURN_STEP_FRAMES; i++) {
         game_update_tanks();
     }
     TEST_ASSERT(g_p1.angle == 15, "P1 full 360-degree rotation returns to same angle");
 
-    // Player 2 rotation test
+    // Player 2 rotation test (2 taps to turn 45 degrees from 180 deg to 225 deg)
     REG_P1_KEYS = 0;
     REG_P2_KEYS = BTN_RIGHT;
     game_update_tanks();
-    TEST_ASSERT(g_p2.angle == 9, "P2 angle rotates right: 8 -> 9");
+    TEST_ASSERT(g_p2.angle == 9, "P2 angle rotates right on tap 1: 8 -> 9 (202.5 deg)");
+    REG_P2_KEYS = 0;
+    game_update_tanks();
+    REG_P2_KEYS = BTN_RIGHT;
+    game_update_tanks();
+    TEST_ASSERT(g_p2.angle == 10, "P2 angle rotates right on tap 2: 9 -> 10 (+45 deg)");
+    REG_P2_KEYS = 0;
+    game_update_tanks();
 }
 
 //=============================================================================
@@ -377,7 +398,7 @@ static void test_suite_collision_and_damage(void) {
     TEST_ASSERT(g_p1.hp == 12,    "Shooter takes 2 damage from own reflected bullet (14 -> 12)");
     TEST_ASSERT(g_bullets[3].active == 0, "Own reflected bullet deactivates upon hitting shooter");
 
-    // 3. Damage saturation at zero
+    // 3. Damage saturation at zero (P1 loses -> RED WON, further hits locked out)
     g_p1.hp = 3;
     g_bullets[2].active = 1;
     g_bullets[2].is_big = 1; // 6 damage on 3 HP
@@ -385,6 +406,23 @@ static void test_suite_collision_and_damage(void) {
     REG_COLLISION_TANK = COLL_TANK_P1_HIT | (1U << 2);
     game_process_collisions();
     TEST_ASSERT(g_p1.hp == 0, "P1 HP saturated at 0 without underflow");
+
+    // Stray bullet in a subsequent frame after game over does not damage surviving winner
+    g_bullets[0].active = 1;
+    g_bullets[0].is_big = 1;
+    g_bullets[0].owner  = 1;
+    REG_COLLISION_TANK = COLL_TANK_P2_HIT | (1U << 0);
+    game_process_collisions();
+    TEST_ASSERT(g_p2.hp == 18, "Winner (P2 Red) HP locked after P1 HP reaches 0");
+
+    // Simultaneous elimination in the same frame -> DRAW (both HP == 0)
+    g_p1.hp = 2;
+    g_p2.hp = 2;
+    g_bullets[0].active = 1; g_bullets[0].is_big = 0; g_bullets[0].owner = 1;
+    g_bullets[4].active = 1; g_bullets[4].is_big = 0; g_bullets[4].owner = 2;
+    REG_COLLISION_TANK = COLL_TANK_P1_HIT | COLL_TANK_P2_HIT | (1U << 0) | (1U << 4);
+    game_process_collisions();
+    TEST_ASSERT(g_p1.hp == 0 && g_p2.hp == 0, "Simultaneous fatal hits result in DRAW (both HP == 0)");
 
     // 4. Bullet-to-Bullet mutual annihilation
     g_bullets[0].active = 1;

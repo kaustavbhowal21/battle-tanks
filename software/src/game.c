@@ -6,6 +6,10 @@ Tank g_p1;
 Tank g_p2;
 Bullet g_bullets[MAX_BULLETS];
 
+// Per-player barrel turn rate-limiting counters (in game frames)
+static uint8_t s_p1_turn_cd;
+static uint8_t s_p2_turn_cd;
+
 //=============================================================================
 // Hardware Delay / Frame Pacing
 //=============================================================================
@@ -52,6 +56,9 @@ void game_init(void) {
     REG_HUD_HEALTH  = HUD_HEALTH_PACK(20, 20);
     REG_TANK_ANGLES = TANK_ANGLES_PACK(0, 8);
 
+    s_p1_turn_cd = 0;
+    s_p2_turn_cd = 0;
+
     // Clear any pending hardware collisions
     clear_collision_wall(0xFF);
     clear_collision_tank(0x3FF);
@@ -73,93 +80,76 @@ static int tank_move_blocked(int nx, int ny, const Tank *other, const Tank *self
 }
 
 //=============================================================================
+// Update Single Tank Controls, Rotation, Movement, and Weapons
+//=============================================================================
+__attribute__((noinline))
+static void update_single_tank(Tank *self, const Tank *other, uint8_t *turn_cd,
+                               uint32_t keys, int player,
+                               uint32_t shoot_tmr, uint32_t spec_tmr) {
+    if (self->hp == 0)
+        return;
+
+    if (keys & (BTN_LEFT | BTN_RIGHT)) {
+        if (*turn_cd == 0) {
+            if (keys & BTN_LEFT)
+                self->angle = (self->angle + 15) & 0xF;
+            if (keys & BTN_RIGHT)
+                self->angle = (self->angle + 1) & 0xF;
+            *turn_cd = TURN_STEP_FRAMES - 1;
+        } else {
+            (*turn_cd)--;
+        }
+    } else {
+        *turn_cd = 0;
+    }
+
+    int32_t move_dir = 0;
+    if (keys & BTN_FWD) move_dir = 1;
+    else if (keys & BTN_BWD) move_dir = -1;
+
+    if (move_dir != 0) {
+        int32_t dx = (g_cos_fp[self->angle] * move_dir * 2) << (FP_SHIFT - 8);
+        int32_t dy = (g_sin_fp[self->angle] * move_dir * 2) << (FP_SHIFT - 8);
+
+        int32_t new_x = self->x_fp + dx;
+        int32_t new_y = self->y_fp + dy;
+
+        // Each axis is tested separately so a tank slides along a wall
+        // instead of sticking to it. Maze walls and the other tank block it.
+        if (FROM_FP(new_x) >= ARENA_MIN_X && FROM_FP(new_x) <= (ARENA_MAX_X - TANK_SIZE) &&
+            !physics_tank_hits_wall(FROM_FP(new_x), FROM_FP(self->y_fp)) &&
+            !tank_move_blocked(FROM_FP(new_x), FROM_FP(self->y_fp), other, self))
+            self->x_fp = new_x;
+        if (FROM_FP(new_y) >= ARENA_MIN_Y && FROM_FP(new_y) <= (ARENA_MAX_Y - TANK_SIZE) &&
+            !physics_tank_hits_wall(FROM_FP(self->x_fp), FROM_FP(new_y)) &&
+            !tank_move_blocked(FROM_FP(self->x_fp), FROM_FP(new_y), other, self))
+            self->y_fp = new_y;
+    }
+
+    if ((keys & BTN_SHOOT) && (REG_TIMER_STATUS & shoot_tmr)) {
+        physics_spawn_bullet(player, 0);
+        REG_TIMER_TRIGGER = shoot_tmr;
+    }
+
+    if ((keys & BTN_SPECIAL) && (REG_TIMER_STATUS & spec_tmr)) {
+        physics_spawn_bullet(player, 1);
+        REG_TIMER_TRIGGER = spec_tmr;
+    }
+}
+
+//=============================================================================
 // Update Tank Controls, Rotation, and Movement
 //=============================================================================
 void game_update_tanks(void) {
+    // Freeze tank steering, movement, and firing once any player's health is gone
+    if (g_p1.hp == 0 || g_p2.hp == 0)
+        return;
+
     uint32_t p1_keys = get_p1_input();
     uint32_t p2_keys = get_p2_input();
 
-    // ---------------- Player 1 Controls ----------------
-    if (g_p1.hp > 0) {
-        if (p1_keys & BTN_LEFT)
-            g_p1.angle = (g_p1.angle + 15) & 0xF;
-        if (p1_keys & BTN_RIGHT)
-            g_p1.angle = (g_p1.angle + 1) & 0xF;
-
-        int32_t move_dir1 = 0;
-        if (p1_keys & BTN_FWD) move_dir1 = 1;
-        else if (p1_keys & BTN_BWD) move_dir1 = -1;
-
-        if (move_dir1 != 0) {
-            int32_t dx = (g_cos_fp[g_p1.angle] * move_dir1 * 2) << (FP_SHIFT - 8);
-            int32_t dy = (g_sin_fp[g_p1.angle] * move_dir1 * 2) << (FP_SHIFT - 8);
-
-            int32_t new_x = g_p1.x_fp + dx;
-            int32_t new_y = g_p1.y_fp + dy;
-
-            // Each axis is tested separately so a tank slides along a wall
-            // instead of sticking to it. Maze walls and the other tank block it.
-            if (FROM_FP(new_x) >= ARENA_MIN_X && FROM_FP(new_x) <= (ARENA_MAX_X - TANK_SIZE) &&
-                !physics_tank_hits_wall(FROM_FP(new_x), FROM_FP(g_p1.y_fp)) &&
-                !tank_move_blocked(FROM_FP(new_x), FROM_FP(g_p1.y_fp), &g_p2, &g_p1))
-                g_p1.x_fp = new_x;
-            if (FROM_FP(new_y) >= ARENA_MIN_Y && FROM_FP(new_y) <= (ARENA_MAX_Y - TANK_SIZE) &&
-                !physics_tank_hits_wall(FROM_FP(g_p1.x_fp), FROM_FP(new_y)) &&
-                !tank_move_blocked(FROM_FP(g_p1.x_fp), FROM_FP(new_y), &g_p2, &g_p1))
-                g_p1.y_fp = new_y;
-        }
-
-        if ((p1_keys & BTN_SHOOT) && is_p1_shoot_ready()) {
-            physics_spawn_bullet(1, 0);
-            trigger_p1_shoot_cooldown();
-        }
-
-        if ((p1_keys & BTN_SPECIAL) && is_p1_spec_ready()) {
-            physics_spawn_bullet(1, 1);
-            trigger_p1_spec_cooldown();
-        }
-    }
-
-    // ---------------- Player 2 Controls ----------------
-    if (g_p2.hp > 0) {
-        if (p2_keys & BTN_LEFT)
-            g_p2.angle = (g_p2.angle + 15) & 0xF;
-        if (p2_keys & BTN_RIGHT)
-            g_p2.angle = (g_p2.angle + 1) & 0xF;
-
-        int32_t move_dir2 = 0;
-        if (p2_keys & BTN_FWD) move_dir2 = 1;
-        else if (p2_keys & BTN_BWD) move_dir2 = -1;
-
-        if (move_dir2 != 0) {
-            int32_t dx2 = (g_cos_fp[g_p2.angle] * move_dir2 * 2) << (FP_SHIFT - 8);
-            int32_t dy2 = (g_sin_fp[g_p2.angle] * move_dir2 * 2) << (FP_SHIFT - 8);
-
-            int32_t new_x2 = g_p2.x_fp + dx2;
-            int32_t new_y2 = g_p2.y_fp + dy2;
-
-            // Each axis is tested separately so a tank slides along a wall
-            // instead of sticking to it. Maze walls and the other tank block it.
-            if (FROM_FP(new_x2) >= ARENA_MIN_X && FROM_FP(new_x2) <= (ARENA_MAX_X - TANK_SIZE) &&
-                !physics_tank_hits_wall(FROM_FP(new_x2), FROM_FP(g_p2.y_fp)) &&
-                !tank_move_blocked(FROM_FP(new_x2), FROM_FP(g_p2.y_fp), &g_p1, &g_p2))
-                g_p2.x_fp = new_x2;
-            if (FROM_FP(new_y2) >= ARENA_MIN_Y && FROM_FP(new_y2) <= (ARENA_MAX_Y - TANK_SIZE) &&
-                !physics_tank_hits_wall(FROM_FP(g_p2.x_fp), FROM_FP(new_y2)) &&
-                !tank_move_blocked(FROM_FP(g_p2.x_fp), FROM_FP(new_y2), &g_p1, &g_p2))
-                g_p2.y_fp = new_y2;
-        }
-
-        if ((p2_keys & BTN_SHOOT) && is_p2_shoot_ready()) {
-            physics_spawn_bullet(2, 0);
-            trigger_p2_shoot_cooldown();
-        }
-
-        if ((p2_keys & BTN_SPECIAL) && is_p2_spec_ready()) {
-            physics_spawn_bullet(2, 1);
-            trigger_p2_spec_cooldown();
-        }
-    }
+    update_single_tank(&g_p1, &g_p2, &s_p1_turn_cd, p1_keys, 1, TMR_P1_SHOOT, TMR_P1_SPECIAL);
+    update_single_tank(&g_p2, &g_p1, &s_p2_turn_cd, p2_keys, 2, TMR_P2_SHOOT, TMR_P2_SPECIAL);
 }
 
 //=============================================================================
@@ -225,8 +215,9 @@ void game_process_collisions(void) {
     uint32_t bullet_mask = tank_hits & 0xFFU;
     int p1_was_hit = (tank_hits & COLL_TANK_P1_HIT) != 0;
     int p2_was_hit = (tank_hits & COLL_TANK_P2_HIT) != 0;
+    int match_active = (g_p1.hp > 0 && g_p2.hp > 0);
 
-    if (bullet_mask && (p1_was_hit || p2_was_hit)) {
+    if (match_active && bullet_mask && (p1_was_hit || p2_was_hit)) {
         for (int i = 0; i < MAX_BULLETS; i++) {
             if (!(bullet_mask & (1U << i)) || !g_bullets[i].active)
                 continue;
@@ -253,15 +244,18 @@ void game_process_collisions(void) {
 
                 if (ovl1 && !ovl2) can_hit_p2 = 0;
                 else if (ovl2 && !ovl1) can_hit_p1 = 0;
-                else if (g_bullets[i].owner == 1) can_hit_p1 = 0;
-                else can_hit_p2 = 0;
+                else if (!ovl1 && !ovl2) {
+                    if (g_bullets[i].owner == 1) can_hit_p1 = 0;
+                    else can_hit_p2 = 0;
+                }
             }
 
             if (can_hit_p1) {
                 if (g_p1.hp > dmg) g_p1.hp -= dmg;
                 else g_p1.hp = 0;
                 g_bullets[i].active = 0;
-            } else if (can_hit_p2) {
+            }
+            if (can_hit_p2) {
                 if (g_p2.hp > dmg) g_p2.hp -= dmg;
                 else g_p2.hp = 0;
                 g_bullets[i].active = 0;

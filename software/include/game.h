@@ -25,6 +25,14 @@
 #define FRAME_DELAY_ITERATIONS  166500
 #endif
 
+// Game frames (~16.7 ms each at 60 FPS) between consecutive barrel rotation
+// steps (22.5 deg per step) while a breadboard turn button is held down.
+// 15 frames (~250 ms/step = 4 steps/s = 90 deg/s) makes turning to 45 deg
+// (2 steps) easy both by tapping twice and by holding briefly.
+#ifndef TURN_STEP_FRAMES
+#define TURN_STEP_FRAMES        15
+#endif
+
 #define P1_BULLET_START     0
 #define P1_BULLET_END       3
 #define P2_BULLET_START     4

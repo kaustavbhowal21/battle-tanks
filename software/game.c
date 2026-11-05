@@ -23,6 +23,7 @@
 #define BULLET_BIG_SPEED    4   // pixels per frame
 #define MAX_BOUNCES         5
 #define MAX_BULLETS         8
+#define TURN_STEP_FRAMES    15
 
 #define P1_BULLET_START     0
 #define P1_BULLET_END       3
@@ -69,6 +70,7 @@ typedef struct {
 
 static Tank p1, p2;
 static Bullet bullets[MAX_BULLETS];
+static uint8_t p1_turn_cd, p2_turn_cd;
 
 //=============================================================================
 // Hardware Delay / Frame Pacing
@@ -139,6 +141,9 @@ static void init_game(void) {
     REG_HUD_HEALTH_1 = 20;
     REG_HUD_HEALTH_2 = 20;
 
+    p1_turn_cd = 0;
+    p2_turn_cd = 0;
+
     // Clear any pending hardware collisions
     clear_collision_wall(0xFF);
     clear_collision_tank(0xFFFF);
@@ -182,15 +187,27 @@ static void spawn_bullet(int owner, int is_big) {
 // Tank Physics & Controls
 //=============================================================================
 static void update_tanks(void) {
+    if (p1.hp == 0 || p2.hp == 0)
+        return;
+
     uint32_t p1_keys = get_p1_input();
     uint32_t p2_keys = get_p2_input();
 
     // ---------------- Player 1 Controls ----------------
     if (p1.hp > 0) {
-        if (p1_keys & BTN_LEFT)
-            p1.angle = (p1.angle + 15) & 0xF; // Rotate CCW
-        if (p1_keys & BTN_RIGHT)
-            p1.angle = (p1.angle + 1) & 0xF;  // Rotate CW
+        if (p1_keys & (BTN_LEFT | BTN_RIGHT)) {
+            if (p1_turn_cd == 0) {
+                if (p1_keys & BTN_LEFT)
+                    p1.angle = (p1.angle + 15) & 0xF; // Rotate CCW
+                if (p1_keys & BTN_RIGHT)
+                    p1.angle = (p1.angle + 1) & 0xF;  // Rotate CW
+                p1_turn_cd = TURN_STEP_FRAMES - 1;
+            } else {
+                p1_turn_cd--;
+            }
+        } else {
+            p1_turn_cd = 0;
+        }
 
         int32_t move_dir = 0;
         if (p1_keys & BTN_FWD) move_dir = 1;
@@ -226,10 +243,19 @@ static void update_tanks(void) {
 
     // ---------------- Player 2 Controls ----------------
     if (p2.hp > 0) {
-        if (p2_keys & BTN_LEFT)
-            p2.angle = (p2.angle + 15) & 0xF;
-        if (p2_keys & BTN_RIGHT)
-            p2.angle = (p2.angle + 1) & 0xF;
+        if (p2_keys & (BTN_LEFT | BTN_RIGHT)) {
+            if (p2_turn_cd == 0) {
+                if (p2_keys & BTN_LEFT)
+                    p2.angle = (p2.angle + 15) & 0xF;
+                if (p2_keys & BTN_RIGHT)
+                    p2.angle = (p2.angle + 1) & 0xF;
+                p2_turn_cd = TURN_STEP_FRAMES - 1;
+            } else {
+                p2_turn_cd--;
+            }
+        } else {
+            p2_turn_cd = 0;
+        }
 
         int32_t move_dir2 = 0;
         if (p2_keys & BTN_FWD) move_dir2 = 1;
