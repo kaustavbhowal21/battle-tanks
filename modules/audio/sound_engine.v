@@ -154,7 +154,7 @@ module sound_engine #(
     // 3. Sound Effect State & Parameter Machine
     // Duration in ms, starting pitch divisor, sweep rates, volume decay
     // =========================================================================
-    reg [9:0]  sfx_timer_ms;      // Countdown in ms (up to 1023 ms)
+    reg [10:0] sfx_timer_ms;      // Countdown in ms (up to 2047 ms)
     reg [18:0] tone_div;          // 50MHz / (2 * freq)
     reg [18:0] tone_sweep_step;   // amount added/subtracted to tone_div
     reg        sweep_dir;         // 1 = pitch drops (div increases), 0 = pitch rises
@@ -167,7 +167,7 @@ module sound_engine #(
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             current_sfx     <= SFX_IDLE;
-            sfx_timer_ms    <= 10'd0;
+            sfx_timer_ms    <= 11'd0;
             tone_div        <= 19'd0;
             tone_sweep_step <= 19'd0;
             sweep_dir       <= 1'b0;
@@ -179,46 +179,46 @@ module sound_engine #(
             // Priority Arbiter: DESTROY > HIT > BOUNCE > FIRE
             // -----------------------------------------------------------------
             if (evt_destroy) begin
-                // Explosion: 500 ms long, loud low-frequency noise rumble + bass thud
+                // Explosion: 900 ms long, loud low-frequency noise rumble + bass thud
                 current_sfx     <= SFX_DESTROY;
-                sfx_timer_ms    <= 10'd500;
-                tone_div        <= 19'd350_000; // ~70 Hz sub-bass rumble
-                tone_sweep_step <= 19'd300;
-                sweep_dir       <= 1'b1;
-                tone_volume     <= 8'd45;
-                noise_volume    <= 8'd80;       // dominant heavy noise
-                noise_prescale  <= 8'd120;      // low rumble clock
-            end
-            else if (evt_hit && (current_sfx != SFX_DESTROY)) begin
-                // Tank Hit: 150 ms two-tone dissonant alert + crunch
-                current_sfx     <= SFX_HIT;
-                sfx_timer_ms    <= 10'd150;
-                tone_div        <= 19'd50_000;  // 500 Hz
+                sfx_timer_ms    <= 11'd900;
+                tone_div        <= 19'd380_000; // ~65 Hz sub-bass rumble
                 tone_sweep_step <= 19'd250;
                 sweep_dir       <= 1'b1;
-                tone_volume     <= 8'd60;
-                noise_volume    <= 8'd40;       // impact crunch
-                noise_prescale  <= 8'd40;
+                tone_volume     <= 8'd85;       // loud deep bass
+                noise_volume    <= 8'd120;      // max-swing heavy explosive noise
+                noise_prescale  <= 8'd90;       // deep roaring noise
+            end
+            else if (evt_hit && (current_sfx != SFX_DESTROY)) begin
+                // Tank Hit: 300 ms two-tone dissonant alert + loud crunchy impact
+                current_sfx     <= SFX_HIT;
+                sfx_timer_ms    <= 11'd300;
+                tone_div        <= 19'd41_667;  // 600 Hz alert tone
+                tone_sweep_step <= 19'd120;
+                sweep_dir       <= 1'b1;
+                tone_volume     <= 8'd95;       // loud alarm tone
+                noise_volume    <= 8'd75;       // loud crunchy impact
+                noise_prescale  <= 8'd45;
             end
             else if (evt_bounce && (current_sfx != SFX_DESTROY && current_sfx != SFX_HIT)) begin
-                // Bounce: 35 ms high-pitched metallic chirp
+                // Bounce: 75 ms high-pitched metallic chirp / ping
                 current_sfx     <= SFX_BOUNCE;
-                sfx_timer_ms    <= 10'd35;
-                tone_div        <= 19'd11_364;  // 2200 Hz
-                tone_sweep_step <= 19'd150;
-                sweep_dir       <= 1'b0;        // rises to 2600 Hz
-                tone_volume     <= 8'd65;
-                noise_volume    <= 8'd0;        // pure tone
-                noise_prescale  <= 8'd0;
+                sfx_timer_ms    <= 11'd75;
+                tone_div        <= 19'd13_158;  // ~1900 Hz
+                tone_sweep_step <= 19'd75;      // rises to ~3200 Hz
+                sweep_dir       <= 1'b0;
+                tone_volume     <= 8'd120;      // high amplitude ping
+                noise_volume    <= 8'd30;       // initial metallic tap
+                noise_prescale  <= 8'd15;
             end
             else if (evt_fire && (current_sfx == SFX_IDLE || current_sfx == SFX_FIRE)) begin
-                // Bullet Fire: 65 ms downward laser sweep (1500 Hz -> 300 Hz)
+                // Bullet Fire: 130 ms downward laser sweep (1700 Hz -> 280 Hz)
                 current_sfx     <= SFX_FIRE;
-                sfx_timer_ms    <= 10'd65;
-                tone_div        <= 19'd16_667;  // 1500 Hz
-                tone_sweep_step <= 19'd1100;    // fast downward sweep
+                sfx_timer_ms    <= 11'd130;
+                tone_div        <= 19'd14_700;  // 1700 Hz
+                tone_sweep_step <= 19'd600;     // downward sweep
                 sweep_dir       <= 1'b1;
-                tone_volume     <= 8'd60;
+                tone_volume     <= 8'd115;      // loud arcade laser blast
                 noise_volume    <= 8'd0;
                 noise_prescale  <= 8'd0;
             end
@@ -226,8 +226,8 @@ module sound_engine #(
             // Active SFX Envelope and Pitch Modulation (1 ms Tick)
             // -----------------------------------------------------------------
             else if (tick_1ms && (current_sfx != SFX_IDLE)) begin
-                if (sfx_timer_ms > 10'd1) begin
-                    sfx_timer_ms <= sfx_timer_ms - 10'd1;
+                if (sfx_timer_ms > 11'd1) begin
+                    sfx_timer_ms <= sfx_timer_ms - 11'd1;
 
                     // Pitch sweep
                     if (sweep_dir)
@@ -235,31 +235,47 @@ module sound_engine #(
                     else if (tone_div > tone_sweep_step)
                         tone_div <= tone_div - tone_sweep_step;
 
-                    // Volume decay (linear envelope)
+                    // Volume decay (shaped per sound effect to sustain loudly then fade)
                     case (current_sfx)
                         SFX_FIRE: begin
-                            if (tone_volume > 8'd1) tone_volume <= tone_volume - 8'd1;
+                            // Linear fade from 115 down to 0 across 130 ms
+                            if (tone_volume > 8'd0)
+                                tone_volume <= tone_volume - 8'd1;
                         end
                         SFX_BOUNCE: begin
-                            if (tone_volume > 8'd2) tone_volume <= tone_volume - 8'd2;
+                            // Decay noise click immediately
+                            if (noise_volume > 8'd0)
+                                noise_volume <= (noise_volume > 8'd2) ? (noise_volume - 8'd2) : 8'd0;
+                            // Resonant metallic ring fades from 120 over 75 ms
+                            if (tone_volume > 8'd0) begin
+                                if (sfx_timer_ms[0] == 1'b0)
+                                    tone_volume <= (tone_volume > 8'd2) ? (tone_volume - 8'd2) : 8'd0;
+                                else
+                                    tone_volume <= tone_volume - 8'd1;
+                            end
                         end
                         SFX_HIT: begin
-                            if (tone_volume > 8'd1)  tone_volume  <= tone_volume - 8'd1;
-                            if (noise_volume > 8'd1) noise_volume <= noise_volume - 8'd1;
+                            // Impact crunch noise fades over first 150 ms (decay 1 every 2 ms)
+                            if (noise_volume > 8'd0 && (sfx_timer_ms[0] == 1'b0))
+                                noise_volume <= noise_volume - 8'd1;
+                            // Alarm tone rings out across the full 300 ms (decay 1 every 3 ms)
+                            if (tone_volume > 8'd0 && (sfx_timer_ms[1:0] == 2'b00))
+                                tone_volume  <= tone_volume - 8'd1;
                         end
                         SFX_DESTROY: begin
-                            // Decay noise and tone smoothly over 500 ms
+                            // Low-frequency noise fades over 900 ms (decay 1 every 7 ms)
                             if (noise_volume > 8'd0 && (sfx_timer_ms[2:0] == 3'd0))
                                 noise_volume <= noise_volume - 8'd1;
+                            // Sub-bass thud fades over 850 ms (decay 1 every 10 ms)
                             if (tone_volume > 8'd0 && (sfx_timer_ms[3:0] == 4'd0))
-                                tone_volume <= tone_volume - 8'd1;
+                                tone_volume  <= tone_volume - 8'd1;
                         end
                         default: ;
                     endcase
                 end else begin
                     // SFX Complete -> Return to IDLE
                     current_sfx     <= SFX_IDLE;
-                    sfx_timer_ms    <= 10'd0;
+                    sfx_timer_ms    <= 11'd0;
                     tone_volume     <= 8'd0;
                     noise_volume    <= 8'd0;
                     tone_div        <= 19'd0;

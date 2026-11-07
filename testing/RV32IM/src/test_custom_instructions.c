@@ -56,3 +56,4 @@ int main(void) {
 
     return test_summary("Custom-0 ISA Extensions (mulq & aabb)");
 }
+

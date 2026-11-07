@@ -164,7 +164,7 @@ module tb_sound_engine;
             $display("  [PASS] Sniffer triggered SFX_FIRE immediately upon bullet_act change.");
         end
 
-        advance_ms(70); // Wait for fire sound duration (65 ms)
+        advance_ms(140); // Wait for fire sound duration (130 ms)
         @(posedge clk);
         #1;
 
@@ -193,7 +193,7 @@ module tb_sound_engine;
 
         @(negedge clk);
         wall_hit_any = 1'b0;
-        advance_ms(40); // Wait for bounce sound duration (35 ms)
+        advance_ms(85); // Wait for bounce sound duration (75 ms)
         @(posedge clk);
         #1;
 
@@ -220,7 +220,7 @@ module tb_sound_engine;
             $display("  [PASS] Sniffer triggered SFX_HIT upon health decrease (20 -> 18).");
         end
 
-        advance_ms(160); // Wait for hit sound duration (150 ms)
+        advance_ms(315); // Wait for hit sound duration (300 ms)
         @(posedge clk);
         #1;
 
@@ -267,7 +267,7 @@ module tb_sound_engine;
 
         @(negedge clk);
         wall_hit_any = 1'b0;
-        advance_ms(510); // Wait for explosion duration (500 ms)
+        advance_ms(920); // Wait for explosion duration (900 ms)
         @(posedge clk);
         #1;
 
@@ -296,7 +296,7 @@ module tb_sound_engine;
 
         @(negedge clk);
         trig_fire = 1'b0;
-        advance_ms(70);
+        advance_ms(140);
 
         @(negedge clk);
         trig_bounce = 1'b1;
@@ -312,7 +312,7 @@ module tb_sound_engine;
 
         @(negedge clk);
         trig_bounce = 1'b0;
-        advance_ms(40);
+        advance_ms(85);
 
         // ---------------------------------------------------------------------
         // Final Results

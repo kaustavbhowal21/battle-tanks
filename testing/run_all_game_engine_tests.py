@@ -11,6 +11,7 @@ TESTS = [
     ("Maze Tile RAM",    "tb_maze_tile_ram",    ["modules/game_engine/maze_tile_ram.v",    "modules/sim/tb_maze_tile_ram.v"]),
     ("Sprite HUD Regfile","tb_sprite_hud_regfile",["modules/game_engine/sprite_hud_regfile.v","modules/sim/tb_sprite_hud_regfile.v"]),
     ("Collision Engine", "tb_collision_engine", ["modules/game_engine/collision_engine.v", "modules/sim/tb_collision_engine.v"]),
+    ("Sound Engine",     "tb_sound_engine",     ["modules/audio/sound_engine.v", "modules/sim/tb_sound_engine.v"]),
     ("MMIO Interconnect","tb_mmio_interconnect",["modules/game_engine/mmio_interconnect.v","modules/sim/tb_mmio_interconnect.v"]),
     ("Game Engine Subsystem","tb_game_engine_subsystem", [
         "modules/game_engine/input_controller.v",
