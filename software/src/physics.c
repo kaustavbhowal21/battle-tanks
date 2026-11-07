@@ -2,17 +2,27 @@
 #include "mmio.h"
 
 //=============================================================================
-// 16-Angle Fixed-Point Trigonometry Tables (8-bit fractional scale = 256)
-// Angles: 0 = 0 deg (East), 4 = 90 deg (South), 8 = 180 deg (West), 12 = 270 deg (North)
+// 64-Angle Fixed-Point Trigonometry Table (8-bit fractional scale = 256)
+// Angle index i is i * 5.625 deg, measured clockwise on screen (y grows down):
+//   0 = East, 16 = South, 32 = West, 48 = North
+//
+// Only ONE table is stored: sin(a) = g_sin_fp[a], and because cos(a) = sin(a + 90 deg)
+// the table is extended by a quarter turn (16 entries) so that
+//   g_cos_fp[a] == g_sin_fp[a + 16]     (see the g_cos_fp macro in physics.h)
+// This saves 128 bytes of the tiny 4 KB memory. Every 4th entry equals the former
+// 16-angle (22.5 deg) table.
 //=============================================================================
-const int16_t g_cos_fp[16] = {
-     256,  237,  181,   98,    0,  -98, -181, -237,
-    -256, -237, -181,  -98,    0,   98,  181,  237
-};
-
-const int16_t g_sin_fp[16] = {
-       0,   98,  181,  237,  256,  237,  181,   98,
-       0,  -98, -181, -237, -256, -237, -181,  -98
+const int16_t g_sin_fp[NUM_ANGLES + NUM_ANGLES / 4] = {
+       0,   25,   50,   74,   98,  121,  142,  162,
+     181,  198,  213,  226,  237,  245,  251,  255,
+     256,  255,  251,  245,  237,  226,  213,  198,
+     181,  162,  142,  121,   98,   74,   50,   25,
+       0,  -25,  -50,  -74,  -98, -121, -142, -162,
+    -181, -198, -213, -226, -237, -245, -251, -255,
+    -256, -255, -251, -245, -237, -226, -213, -198,
+    -181, -162, -142, -121,  -98,  -74,  -50,  -25,
+       0,   25,   50,   74,   98,  121,  142,  162,
+     181,  198,  213,  226,  237,  245,  251,  255,
 };
 
 //=============================================================================

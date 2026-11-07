@@ -66,9 +66,10 @@ module mmio_interconnect (
     assign cs_col    = mmio_sel && (d_addr[11:4] == 8'h02);
     assign wr_en_col = cs_col && d_we;
 
-    // Sprite & HUD Register File: 0x8000_0040..0x7F and 0x8000_0080..0x87
-    // addr[11:6] == 6'h01 (0x40..0x7F) OR addr[11:3] == 9'h010 (0x80..0x87)
-    assign cs_spr    = mmio_sel && ((d_addr[11:6] == 6'h01) || (d_addr[11:3] == 9'h010));
+    // Sprite & HUD Register File: 0x8000_0040..0x7F and 0x8000_0080..0x8F
+    // addr[11:6] == 6'h01 (0x40..0x7F) OR addr[11:4] == 8'h08 (0x80..0x8F)
+    // (0x80 health, 0x84 / 0x88 tank 1 / tank 2 barrel direction vectors)
+    assign cs_spr    = mmio_sel && ((d_addr[11:6] == 6'h01) || (d_addr[11:4] == 8'h08));
     assign wr_en_spr = cs_spr && d_we;
 
     // Maze Tile RAM (400 words): 0x8000_0100..0x8000_073F (addr[11:8] in 1..7)

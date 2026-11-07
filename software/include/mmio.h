@@ -81,18 +81,23 @@ extern uint32_t g_mock_mmio_space[1024];
 #define REG_SPRITE_BULLET(i)    MMIO_REG(0x0048 + ((i) * 4))
 
 #define REG_HUD_HEALTH          MMIO_REG(0x0080) // {16'b0, hp2[7:0], hp1[7:0]} (0..20 hearts)
-#define REG_TANK_ANGLES         MMIO_REG(0x0084) // {24'b0, ang2[3:0], ang1[3:0]}
+// Barrel direction vectors, one word per tank: {6'b0, sin[9:0], 6'b0, cos[9:0]}
+// cos/sin are signed 10-bit values scaled by 256 (range -256..+256), taken from
+// the same g_cos_fp / g_sin_fp tables the game physics uses, so the drawn barrel
+// always points exactly where the tank moves and shoots. Any angle is supported.
+#define REG_TANK1_DIR           MMIO_REG(0x0084)
+#define REG_TANK2_DIR           MMIO_REG(0x0088)
 
 #define HUD_HEALTH_PACK(hp1, hp2)   ((((uint32_t)(hp2) & 0xFFU) << 8) | ((uint32_t)(hp1) & 0xFFU))
 #define HUD_HEALTH_P1(reg)          ((reg) & 0xFFU)
 #define HUD_HEALTH_P2(reg)          (((reg) >> 8) & 0xFFU)
-#define TANK_ANGLES_PACK(a1, a2)    ((((uint32_t)(a2) & 0xFU) << 4) | ((uint32_t)(a1) & 0xFU))
+#define TANK_DIR_PACK(c, s)         ((((uint32_t)(s) & 0x3FFU) << 16) | ((uint32_t)(c) & 0x3FFU))
 #define SPRITE_POS_PACK(x, y)       ((((uint32_t)(y) & 0x3FFU) << 16) | ((uint32_t)(x) & 0x3FFU))
 #define SPRITE_BULLET_PACK(x, y, act, big) \
     ((((uint32_t)(big) & 1U) << 21) | (((uint32_t)(act) & 1U) << 20) | \
      (((uint32_t)(y) & 0x3FFU) << 10) | ((uint32_t)(x) & 0x3FFU))
 
-// 5. Mirrored Maze Tile RAM (Fig 7)
+// 6. Mirrored Maze Tile RAM (Fig 7)
 // 20x20 tiles = 400 words (0x0100 .. 0x073C, word addressed)
 #define MAZE_TILE(row, col)     (*(volatile uint32_t *)(MAZE_RAM_BASE + (((row) * 20 + (col)) << 2)))
 

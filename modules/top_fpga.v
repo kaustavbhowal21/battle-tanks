@@ -134,7 +134,6 @@ module top_fpga #(
     wire [31:0] rd_in;
     wire [31:0] rd_tmr;
     wire [31:0] rd_col;
-    wire [31:0] rd_perf;
     wire [31:0] rd_maze;
 
     // Interconnect chip-selects and write strobes
@@ -213,7 +212,6 @@ module top_fpga #(
         .rd_in       (rd_in),
         .rd_tmr      (rd_tmr),
         .rd_col      (rd_col),
-        .rd_perf     (rd_perf),
         .rd_maze     (rd_maze),
 
         .cs_dmem     (cs_dmem),
@@ -274,7 +272,8 @@ module top_fpga #(
     wire [7:0] bullet_act;
     wire [7:0] bullet_big;
     wire [7:0] hp1, hp2;
-    wire [3:0] tank_ang1, tank_ang2;
+    wire signed [9:0] tank_cos1, tank_sin1;
+    wire signed [9:0] tank_cos2, tank_sin2;
     wire       p1_flash_active, p2_flash_active;
 
     sprite_hud_regfile u_sprites (
@@ -294,8 +293,10 @@ module top_fpga #(
         .bullet_big      (bullet_big),
         .hp1             (hp1),
         .hp2             (hp2),
-        .tank_ang1       (tank_ang1),
-        .tank_ang2       (tank_ang2),
+        .tank_cos1       (tank_cos1),
+        .tank_sin1       (tank_sin1),
+        .tank_cos2       (tank_cos2),
+        .tank_sin2       (tank_sin2),
         .p1_flash_active (p1_flash_active),
         .p2_flash_active (p2_flash_active)
     );
@@ -335,8 +336,6 @@ module top_fpga #(
     // =========================================================================
     // 9. Hardware Collision Engine (Fig 6a..6d)
     // =========================================================================
-    wire [2:0] col_scan_idx;
-
     collision_engine u_collision (
         .clk                   (clk_sys),
         .reset_n               (rst_n),
@@ -560,10 +559,12 @@ module top_fpga #(
         .active          (vga_active),
         .p1_tank_x       (p1_tank_x),
         .p1_tank_y       (p1_tank_y),
-        .tank_ang1       (tank_ang1),
+        .tank_cos1       (tank_cos1),
+        .tank_sin1       (tank_sin1),
         .p2_tank_x       (p2_tank_x),
         .p2_tank_y       (p2_tank_y),
-        .tank_ang2       (tank_ang2),
+        .tank_cos2       (tank_cos2),
+        .tank_sin2       (tank_sin2),
         .bullet_x        (bullet_x),
         .bullet_y        (bullet_y),
         .bullet_act      (bullet_act),

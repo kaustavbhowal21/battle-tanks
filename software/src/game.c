@@ -20,20 +20,30 @@ void game_delay(uint32_t count) {
 }
 
 //=============================================================================
+// Send both barrel direction vectors (cos, sin) to the sprite hardware.
+// cos and sin of one tank share a single register so they always update together.
+//=============================================================================
+__attribute__((noinline))
+static void write_tank_directions(void) {
+    REG_TANK1_DIR = TANK_DIR_PACK(g_cos_fp[g_p1.angle], g_sin_fp[g_p1.angle]);
+    REG_TANK2_DIR = TANK_DIR_PACK(g_cos_fp[g_p2.angle], g_sin_fp[g_p2.angle]);
+}
+
+//=============================================================================
 // Initialize Game State
 //=============================================================================
 void game_init(void) {
-    // Player 1: Top-Left (x=48, y=48), facing East (angle=0), 20 hearts
+    // Player 1: Top-Left (x=48, y=48), facing East, 20 hearts
     g_p1.x_fp  = TO_FP(48);
     g_p1.y_fp  = TO_FP(48);
-    g_p1.angle = 0;
+    g_p1.angle = ANGLE_EAST;
     g_p1.hp    = 20;
     g_p1.score = 0;
 
-    // Player 2: Bottom-Right (x=410, y=410), facing West (angle=8), 20 hearts
+    // Player 2: Bottom-Right (x=410, y=410), facing West, 20 hearts
     g_p2.x_fp  = TO_FP(410);
     g_p2.y_fp  = TO_FP(410);
-    g_p2.angle = 8;
+    g_p2.angle = ANGLE_WEST;
     g_p2.hp    = 20;
     g_p2.score = 0;
 
@@ -54,7 +64,7 @@ void game_init(void) {
 
     // Set initial HUD health and turret angles
     REG_HUD_HEALTH  = HUD_HEALTH_PACK(20, 20);
-    REG_TANK_ANGLES = TANK_ANGLES_PACK(0, 8);
+    write_tank_directions();
 
     s_p1_turn_cd = 0;
     s_p2_turn_cd = 0;
@@ -92,9 +102,9 @@ static void update_single_tank(Tank *self, const Tank *other, uint8_t *turn_cd,
     if (keys & (BTN_LEFT | BTN_RIGHT)) {
         if (*turn_cd == 0) {
             if (keys & BTN_LEFT)
-                self->angle = (self->angle + 15) & 0xF;
+                self->angle = (self->angle + NUM_ANGLES - 1) & ANGLE_MASK;
             if (keys & BTN_RIGHT)
-                self->angle = (self->angle + 1) & 0xF;
+                self->angle = (self->angle + 1) & ANGLE_MASK;
             *turn_cd = TURN_STEP_FRAMES - 1;
         } else {
             (*turn_cd)--;
@@ -285,7 +295,7 @@ void game_process_collisions(void) {
 void game_sync_display(void) {
     update_tank_sprite(1, FROM_FP(g_p1.x_fp), FROM_FP(g_p1.y_fp));
     update_tank_sprite(2, FROM_FP(g_p2.x_fp), FROM_FP(g_p2.y_fp));
-    REG_TANK_ANGLES = TANK_ANGLES_PACK(g_p1.angle, g_p2.angle);
+    write_tank_directions();
 
     for (int i = 0; i < MAX_BULLETS; i++) {
         REG_SPRITE_BULLET(i) = SPRITE_BULLET_PACK(FROM_FP(g_bullets[i].x_fp),

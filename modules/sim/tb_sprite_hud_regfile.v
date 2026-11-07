@@ -8,7 +8,7 @@
 //    - 0x8000_0044: Tank 2 Position (x, y)
 //    - 0x8000_0048..0x64: Bullet 0..7 coordinates, active and big flags
 //    - 0x8000_0080: Player 1 and Player 2 Health (hp1, hp2)
-//    - 0x8000_0084: Tank 1 and Tank 2 Turret Angles (ang1, ang2)
+//    - 0x8000_0084 / 0x8000_0088: Tank 1 / Tank 2 barrel direction vectors (cos, sin)
 // 3. Continuous live drive to hardware renderers and collision engine.
 //=============================================================================
 
@@ -32,8 +32,8 @@ module tb_sprite_hud_regfile;
 
     wire [7:0] hp1;
     wire [7:0] hp2;
-    wire [3:0] tank_ang1;
-    wire [3:0] tank_ang2;
+    wire signed [9:0] tank_cos1, tank_sin1;
+    wire signed [9:0] tank_cos2, tank_sin2;
 
     integer errors = 0;
     integer bi;
@@ -54,8 +54,10 @@ module tb_sprite_hud_regfile;
         .bullet_big (bullet_big),
         .hp1        (hp1),
         .hp2        (hp2),
-        .tank_ang1  (tank_ang1),
-        .tank_ang2  (tank_ang2)
+        .tank_cos1  (tank_cos1),
+        .tank_sin1  (tank_sin1),
+        .tank_cos2  (tank_cos2),
+        .tank_sin2  (tank_sin2)
     );
 
     // 50 MHz clock
@@ -126,6 +128,14 @@ module tb_sprite_hud_regfile;
             $display("  [PASS] All 8 bullets initially inactive.");
         end
 
+        if (tank_cos1 !== 10'sd256 || tank_sin1 !== 10'sd0 || tank_cos2 !== -10'sd256 || tank_sin2 !== 10'sd0) begin
+            $display("  [FAIL] Barrel direction reset mismatch! P1 (%0d,%0d) expected (256,0), P2 (%0d,%0d) expected (-256,0)",
+                     tank_cos1, tank_sin1, tank_cos2, tank_sin2);
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] Barrels face East (P1) and West (P2) after reset.");
+        end
+
         // =====================================================================
         // Test 2: Writing Tank 1 and Tank 2 Coordinates
         // =====================================================================
@@ -187,8 +197,10 @@ module tb_sprite_hud_regfile;
         // 0x80: Health bar {16'd0, hp2[7:0], hp1[7:0]}
         write_reg(32'h8000_0080, {16'd0, 8'd14, 8'd18}); // hp2=14, hp1=18
 
-        // 0x84: Tank angles {24'd0, ang2[3:0], ang1[3:0]}
-        write_reg(32'h8000_0084, {24'd0, 4'd11, 4'd5}); // ang2=11, ang1=5
+        // 0x84 / 0x88: barrel direction {6'd0, sin[9:0], 6'd0, cos[9:0]} (signed, x256)
+        // P1 at 39.375 deg: cos=198 sin=162;  P2 at 208.125 deg: cos=-226 sin=-121
+        write_reg(32'h8000_0084, {6'd0, 10'sd162, 6'd0, 10'sd198});
+        write_reg(32'h8000_0088, {6'd0, -10'sd121, 6'd0, -10'sd226});
 
         @(posedge clk);
         #5;
@@ -199,11 +211,55 @@ module tb_sprite_hud_regfile;
             $display("  [PASS] Health registers updated (hp1=18, hp2=14).");
         end
 
-        if (tank_ang1 !== 4'd5 || tank_ang2 !== 4'd11) begin
-            $display("  [FAIL] Tank angles unpack failed! Expected ang1=5, ang2=11, got %0d, %0d", tank_ang1, tank_ang2);
+        if (tank_cos1 !== 10'sd198 || tank_sin1 !== 10'sd162) begin
+            $display("  [FAIL] Tank 1 direction unpack failed! Expected (198,162), got (%0d,%0d)", tank_cos1, tank_sin1);
             errors = errors + 1;
         end else begin
-            $display("  [PASS] Tank angles updated (ang1=5, ang2=11).");
+            $display("  [PASS] Tank 1 direction updated (cos=198, sin=162).");
+        end
+
+        if (tank_cos2 !== -10'sd226 || tank_sin2 !== -10'sd121) begin
+            $display("  [FAIL] Tank 2 direction unpack failed (negative values)! Expected (-226,-121), got (%0d,%0d)", tank_cos2, tank_sin2);
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] Tank 2 direction updated with negative cos/sin (-226, -121).");
+        end
+
+        // Extreme values: exactly +-256 on each axis
+        write_reg(32'h8000_0084, {6'd0, -10'sd256, 6'd0, 10'sd256});
+        write_reg(32'h8000_0088, {6'd0, 10'sd256, 6'd0, -10'sd256});
+        @(posedge clk);
+        #5;
+        if (tank_cos1 !== 10'sd256 || tank_sin1 !== -10'sd256 || tank_cos2 !== -10'sd256 || tank_sin2 !== 10'sd256) begin
+            $display("  [FAIL] Extreme direction values mishandled: P1 (%0d,%0d) P2 (%0d,%0d)",
+                     tank_cos1, tank_sin1, tank_cos2, tank_sin2);
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] Direction registers hold +-256 on both axes.");
+        end
+
+        // Writing one direction register must not disturb the other registers
+        if (hp1 !== 8'd18 || hp2 !== 8'd14 || p1_tank_x !== 10'd120 || bullet_x[1] !== 10'd350) begin
+            $display("  [FAIL] Direction writes corrupted other registers!");
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] Direction writes leave health, tank and bullet registers untouched.");
+        end
+
+        // A write without wr_en_spr, and a write to an unused index (0x8C), change nothing
+        @(posedge clk);
+        d_addr <= 32'h8000_0084; d_wdata <= 32'h0000_0000; wr_en_spr <= 1'b0;
+        @(posedge clk);
+        d_addr <= 32'h8000_008C; d_wdata <= 32'h0000_0000; wr_en_spr <= 1'b1;
+        @(posedge clk);
+        wr_en_spr <= 1'b0;
+        @(posedge clk);
+        #5;
+        if (tank_cos1 !== 10'sd256 || tank_sin1 !== -10'sd256 || tank_cos2 !== -10'sd256 || tank_sin2 !== 10'sd256) begin
+            $display("  [FAIL] Direction changed by a disabled or out-of-range write!");
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] Disabled / unused-address writes are ignored.");
         end
 
         $display("==========================================================");

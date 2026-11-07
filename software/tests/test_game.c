@@ -47,31 +47,48 @@ static void reset_mock_mmio(void) {
 // Suite 1: Trigonometric Tables & Fixed-Point Conversion
 //=============================================================================
 static void test_suite_trig_and_fixed_point(void) {
-    // 1. Check cardinal angles
-    // Angle 0: East (cos=256, sin=0)
-    TEST_ASSERT(g_cos_fp[0] == 256, "cos(0 deg) == 256");
-    TEST_ASSERT(g_sin_fp[0] == 0,   "sin(0 deg) == 0");
+    // 1. Cardinal angles (0 = East, then clockwise on screen since y grows down)
+    TEST_ASSERT(NUM_ANGLES == 64, "64 discrete angles (5.625 deg per step)");
+    TEST_ASSERT(g_cos_fp[ANGLE_EAST]  == 256 && g_sin_fp[ANGLE_EAST]  == 0,    "East:  cos=256 sin=0");
+    TEST_ASSERT(g_cos_fp[ANGLE_SOUTH] == 0   && g_sin_fp[ANGLE_SOUTH] == 256,  "South: cos=0 sin=256");
+    TEST_ASSERT(g_cos_fp[ANGLE_WEST]  == -256 && g_sin_fp[ANGLE_WEST] == 0,    "West:  cos=-256 sin=0");
+    TEST_ASSERT(g_cos_fp[ANGLE_NORTH] == 0   && g_sin_fp[ANGLE_NORTH] == -256, "North: cos=0 sin=-256");
 
-    // Angle 4: South (cos=0, sin=256)
-    TEST_ASSERT(g_cos_fp[4] == 0,   "cos(90 deg) == 0");
-    TEST_ASSERT(g_sin_fp[4] == 256, "sin(90 deg) == 256");
-
-    // Angle 8: West (cos=-256, sin=0)
-    TEST_ASSERT(g_cos_fp[8] == -256, "cos(180 deg) == -256");
-    TEST_ASSERT(g_sin_fp[8] == 0,    "sin(180 deg) == 0");
-
-    // Angle 12: North (cos=0, sin=-256)
-    TEST_ASSERT(g_cos_fp[12] == 0,    "cos(270 deg) == 0");
-    TEST_ASSERT(g_sin_fp[12] == -256, "sin(270 deg) == -256");
-
-    // 2. Pythagorean theorem test for all 16 angles: cos^2 + sin^2 ~= 256^2 (65536)
-    for (int i = 0; i < 16; i++) {
+    // 2. Pythagorean identity for all 64 angles: cos^2 + sin^2 ~= 256^2 (65536)
+    for (int i = 0; i < NUM_ANGLES; i++) {
         int32_t c = g_cos_fp[i];
         int32_t s = g_sin_fp[i];
         int32_t mag_sq = c * c + s * s;
-        // Check within 2% margin due to integer rounding
         int diff = abs(mag_sq - 65536);
-        TEST_ASSERT(diff < 2000, "cos^2 + sin^2 approximately equals 256^2");
+        TEST_ASSERT(diff < 300, "cos^2 + sin^2 approximately equals 256^2 (within 0.5%)");
+    }
+
+    // 2b. Table structure: sin is cos shifted by 90 deg; cos is even; cos(180-a) = -cos(a)
+    for (int i = 0; i < NUM_ANGLES; i++) {
+        TEST_ASSERT(g_sin_fp[i] == g_cos_fp[(i + NUM_ANGLES - NUM_ANGLES / 4) & ANGLE_MASK],
+                    "sin(a) == cos(a - 90 deg)");
+        TEST_ASSERT(g_cos_fp[i] == g_cos_fp[(NUM_ANGLES - i) & ANGLE_MASK], "cos(-a) == cos(a)");
+        TEST_ASSERT(g_cos_fp[(NUM_ANGLES / 2 - i) & ANGLE_MASK] == -g_cos_fp[i], "cos(180 - a) == -cos(a)");
+    }
+
+    // 2c. Known reference values (round(256 * trig)) for 45, 22.5 and 67.5 degrees
+    TEST_ASSERT(g_cos_fp[8] == 181 && g_sin_fp[8] == 181, "45 deg: cos = sin = 181");
+    TEST_ASSERT(g_cos_fp[4] == 237 && g_sin_fp[4] == 98,  "22.5 deg: cos=237 sin=98");
+    TEST_ASSERT(g_cos_fp[12] == 98 && g_sin_fp[12] == 237, "67.5 deg: cos=98 sin=237");
+
+    // 2d. Backward compatible: every 4th entry equals the former 16-angle table
+    static const int16_t old_cos[16] = { 256, 237, 181, 98, 0, -98, -181, -237,
+                                        -256, -237, -181, -98, 0, 98, 181, 237 };
+    for (int k = 0; k < 16; k++) {
+        TEST_ASSERT(g_cos_fp[4 * k] == old_cos[k], "64-angle table matches old 16-angle cos at every 4th entry");
+        TEST_ASSERT(g_sin_fp[4 * k] == old_cos[(k + 12) & 15], "64-angle table matches old 16-angle sin at every 4th entry");
+    }
+
+    // 2e. Smoothness: neighbouring directions differ by at most ~25/256 per axis
+    for (int i = 0; i < NUM_ANGLES; i++) {
+        int j = (i + 1) & ANGLE_MASK;
+        TEST_ASSERT(abs(g_cos_fp[j] - g_cos_fp[i]) <= 26 && abs(g_sin_fp[j] - g_sin_fp[i]) <= 26,
+                    "adjacent angles are at most 5.625 deg apart (small vector change)");
     }
 
     // 3. Fixed point conversions
@@ -95,14 +112,14 @@ static void test_suite_game_init(void) {
     // Verify Player 1 starting values
     TEST_ASSERT(FROM_FP(g_p1.x_fp) == 48, "P1 initial X is 48");
     TEST_ASSERT(FROM_FP(g_p1.y_fp) == 48, "P1 initial Y is 48");
-    TEST_ASSERT(g_p1.angle == 0,          "P1 initial angle is 0 (East)");
+    TEST_ASSERT(g_p1.angle == ANGLE_EAST,  "P1 initial angle is East");
     TEST_ASSERT(g_p1.hp == 20,            "P1 initial HP is 20");
     TEST_ASSERT(g_p1.score == 0,         "P1 initial score is 0");
 
     // Verify Player 2 starting values
     TEST_ASSERT(FROM_FP(g_p2.x_fp) == 410, "P2 initial X is 410");
     TEST_ASSERT(FROM_FP(g_p2.y_fp) == 410, "P2 initial Y is 410");
-    TEST_ASSERT(g_p2.angle == 8,           "P2 initial angle is 8 (West)");
+    TEST_ASSERT(g_p2.angle == ANGLE_WEST,  "P2 initial angle is West");
     TEST_ASSERT(g_p2.hp == 20,             "P2 initial HP is 20");
     TEST_ASSERT(g_p2.score == 0,          "P2 initial score is 0");
 
@@ -114,6 +131,8 @@ static void test_suite_game_init(void) {
     // Verify MMIO registers
     TEST_ASSERT(HUD_HEALTH_P1(REG_HUD_HEALTH) == 20, "HUD Health 1 field initialized to 20");
     TEST_ASSERT(HUD_HEALTH_P2(REG_HUD_HEALTH) == 20, "HUD Health 2 field initialized to 20");
+    TEST_ASSERT(REG_TANK1_DIR == TANK_DIR_PACK(256, 0),  "Tank 1 barrel direction register initialised East");
+    TEST_ASSERT(REG_TANK2_DIR == TANK_DIR_PACK(-256, 0), "Tank 2 barrel direction register initialised West");
 }
 
 //=============================================================================
@@ -123,10 +142,10 @@ static void test_suite_tank_steering(void) {
     reset_mock_mmio();
     game_init();
 
-    // Player 1 turns Right (+1 = 22.5 deg) immediately on first pressed frame
+    // Player 1 turns Right (+1 step = 5.625 deg) immediately on first pressed frame
     REG_P1_KEYS = BTN_RIGHT;
     game_update_tanks();
-    TEST_ASSERT(g_p1.angle == 1, "P1 angle rotates right on initial press: 0 -> 1 (22.5 deg)");
+    TEST_ASSERT(g_p1.angle == 1, "P1 angle rotates right on initial press: 0 -> 1 (5.625 deg)");
 
     // Holding button down for fewer than TURN_STEP_FRAMES frames does not spin further
     for (int f = 1; f < TURN_STEP_FRAMES; f++) {
@@ -134,9 +153,9 @@ static void test_suite_tank_steering(void) {
         TEST_ASSERT(g_p1.angle == 1, "P1 barrel rotation speed throttled while button held");
     }
 
-    // At frame TURN_STEP_FRAMES while held, barrel advances to 45 deg (angle 2)
+    // At frame TURN_STEP_FRAMES while held, barrel advances one more step (angle 2)
     game_update_tanks();
-    TEST_ASSERT(g_p1.angle == 2, "P1 angle reaches 45 deg (angle 2) after TURN_STEP_FRAMES");
+    TEST_ASSERT(g_p1.angle == 2, "P1 angle advances one step after TURN_STEP_FRAMES while held");
 
     // Releasing and tapping Left (-1) rotates back immediately on the tap
     REG_P1_KEYS = 0;
@@ -145,7 +164,7 @@ static void test_suite_tank_steering(void) {
     game_update_tanks();
     TEST_ASSERT(g_p1.angle == 1, "P1 angle rotates left on tap: 2 -> 1");
 
-    // Player 1 turns Left past 0 (wrap-around to 15) via button taps
+    // Player 1 turns Left past 0 (wrap-around to NUM_ANGLES-1) via button taps
     REG_P1_KEYS = 0;
     game_update_tanks();
     REG_P1_KEYS = BTN_LEFT;
@@ -153,27 +172,80 @@ static void test_suite_tank_steering(void) {
     REG_P1_KEYS = 0;
     game_update_tanks();
     REG_P1_KEYS = BTN_LEFT;
-    game_update_tanks(); // 0 -> 15
-    TEST_ASSERT(g_p1.angle == 15, "P1 angle wraps cleanly: 0 -> 15");
+    game_update_tanks(); // 0 -> 63
+    TEST_ASSERT(g_p1.angle == NUM_ANGLES - 1, "P1 angle wraps cleanly: 0 -> 63");
 
-    // Full 360 degree rotation (16 steps while holding button for 16 * TURN_STEP_FRAMES frames)
-    for (int i = 0; i < 16 * TURN_STEP_FRAMES; i++) {
+    // Full 360 degree rotation (NUM_ANGLES steps while holding button for NUM_ANGLES * TURN_STEP_FRAMES frames)
+    for (int i = 0; i < NUM_ANGLES * TURN_STEP_FRAMES; i++) {
         game_update_tanks();
     }
-    TEST_ASSERT(g_p1.angle == 15, "P1 full 360-degree rotation returns to same angle");
+    TEST_ASSERT(g_p1.angle == NUM_ANGLES - 1, "P1 full 360-degree rotation returns to same angle");
 
-    // Player 2 rotation test (2 taps to turn 45 degrees from 180 deg to 225 deg)
+    // Turning is smooth: every observed change is exactly one 5.625 deg step
+    REG_P1_KEYS = BTN_RIGHT;
+    int prev = g_p1.angle, max_jump = 0;
+    for (int i = 0; i < 2 * NUM_ANGLES * TURN_STEP_FRAMES; i++) {
+        game_update_tanks();
+        int d = (g_p1.angle - prev) & ANGLE_MASK;
+        if (d > max_jump) max_jump = d;
+        prev = g_p1.angle;
+    }
+    TEST_ASSERT(max_jump == 1, "Held turn changes the angle by exactly one step at a time");
+
+    // Player 2 rotation test (2 taps from West)
     REG_P1_KEYS = 0;
     REG_P2_KEYS = BTN_RIGHT;
     game_update_tanks();
-    TEST_ASSERT(g_p2.angle == 9, "P2 angle rotates right on tap 1: 8 -> 9 (202.5 deg)");
+    TEST_ASSERT(g_p2.angle == ANGLE_WEST + 1, "P2 angle rotates right on tap 1: West -> West+1 step");
     REG_P2_KEYS = 0;
     game_update_tanks();
     REG_P2_KEYS = BTN_RIGHT;
     game_update_tanks();
-    TEST_ASSERT(g_p2.angle == 10, "P2 angle rotates right on tap 2: 9 -> 10 (+45 deg)");
+    TEST_ASSERT(g_p2.angle == ANGLE_WEST + 2, "P2 angle rotates right on tap 2: +2 steps (11.25 deg)");
     REG_P2_KEYS = 0;
     game_update_tanks();
+}
+
+//=============================================================================
+// Suite 3b: Movement follows the exact angle (any of the 64 directions)
+//=============================================================================
+static void test_suite_arbitrary_angle_motion(void) {
+    reset_mock_mmio();
+    game_init();
+
+    // At an arbitrary angle (11.25 deg, index 2) the tank moves along (cos, sin) with sub-pixel accuracy
+    g_p1.x_fp = TO_FP(40); g_p1.y_fp = TO_FP(100);       // open floor, nothing in the way
+    g_p1.angle = 2;
+    REG_P1_KEYS = BTN_FWD;
+    int32_t x0 = g_p1.x_fp, y0 = g_p1.y_fp;
+    game_update_tanks();
+    TEST_ASSERT(g_p1.x_fp - x0 == g_cos_fp[2] * 2, "Forward step X equals 2*cos(11.25 deg) in Q8");
+    TEST_ASSERT(g_p1.y_fp - y0 == g_sin_fp[2] * 2, "Forward step Y equals 2*sin(11.25 deg) in Q8");
+
+    // After many frames the tank has travelled in the commanded direction (slope check)
+    for (int f = 0; f < 59; f++) game_update_tanks();
+    int32_t dx = g_p1.x_fp - x0, dy = g_p1.y_fp - y0;     // 60 frames of motion
+    TEST_ASSERT(dx == 60 * 2 * g_cos_fp[2] && dy == 60 * 2 * g_sin_fp[2], "60 frames at angle 2 move exactly 60 * step");
+
+    // Fractional motion accumulates: a shallow angle moves Y by a whole pixel only after enough frames
+    g_p1.x_fp = TO_FP(40); g_p1.y_fp = TO_FP(100);
+    g_p1.angle = 1;                                       // 5.625 deg: sin=25 -> 0.195 px/frame
+    int y_start = FROM_FP(g_p1.y_fp);
+    game_update_tanks();
+    TEST_ASSERT(FROM_FP(g_p1.y_fp) == y_start, "Shallow angle: no whole-pixel Y change after a single frame");
+    for (int f = 0; f < 9; f++) game_update_tanks();
+    TEST_ASSERT(FROM_FP(g_p1.y_fp) > y_start, "Shallow angle: Y accumulates sub-pixel motion into a pixel");
+
+    // Bullets leave the barrel along the same vector
+    reset_mock_mmio();
+    game_init();
+    g_p1.angle = 5;
+    REG_P1_KEYS = BTN_SHOOT;
+    game_update_tanks();
+    TEST_ASSERT(g_bullets[0].vx_fp == (g_cos_fp[5] * BULLET_NORM_SPEED) << (FP_SHIFT - 8) &&
+                g_bullets[0].vy_fp == (g_sin_fp[5] * BULLET_NORM_SPEED) << (FP_SHIFT - 8),
+                "Bullet velocity follows the exact turret angle");
+    REG_P1_KEYS = 0;
 }
 
 //=============================================================================
@@ -202,7 +274,7 @@ static void test_suite_tank_movement_and_bounds(void) {
 
     // Test arena wall clamping: Drive backwards towards left boundary (x < 24)
     g_p1.x_fp = TO_FP(25);
-    g_p1.angle = 8; // Facing West: forward goes towards x=0
+    g_p1.angle = ANGLE_WEST; // Facing West: forward goes towards x=0
     REG_P1_KEYS = BTN_FWD;
     for (int step = 0; step < 10; step++) {
         game_update_tanks();
@@ -211,7 +283,7 @@ static void test_suite_tank_movement_and_bounds(void) {
 
     // Test arena max clamping: Drive towards right boundary
     g_p1.x_fp = TO_FP(430);
-    g_p1.angle = 0; // Facing East
+    g_p1.angle = ANGLE_EAST; // Facing East
     REG_P1_KEYS = BTN_FWD;
     for (int step = 0; step < 20; step++) {
         game_update_tanks();
@@ -222,7 +294,7 @@ static void test_suite_tank_movement_and_bounds(void) {
     MAZE_TILE(4, 4) = TILE_STEEL_SOLID;
     g_p1.x_fp = TO_FP(60);
     g_p1.y_fp = TO_FP(100);
-    g_p1.angle = 0; // East, straight into the pillar
+    g_p1.angle = ANGLE_EAST; // East, straight into the pillar
     REG_P1_KEYS = BTN_FWD;
     for (int step = 0; step < 40; step++) {
         game_update_tanks();
@@ -448,7 +520,7 @@ static void test_suite_display_sync(void) {
 
     g_p2.x_fp = TO_FP(300);
     g_p2.y_fp = TO_FP(250);
-    g_p2.angle = 14;
+    g_p2.angle = 37;
     g_p2.hp = 9;
 
     g_bullets[2].active = 1;
@@ -466,8 +538,14 @@ static void test_suite_display_sync(void) {
     uint32_t expected_p2_reg = (250U << 16) | 300U;
     TEST_ASSERT(REG_SPRITE_P2_TANK == expected_p2_reg, "REG_SPRITE_P2_TANK correctly packed (10-bit x)");
 
-    // Verify turret angles register: {ang2[7:4], ang1[3:0]}
-    TEST_ASSERT(REG_TANK_ANGLES == ((14U << 4) | 7U), "REG_TANK_ANGLES packs both turret angles");
+    // Verify barrel direction registers: {sin[25:16], cos[9:0]} (signed 10-bit, x256)
+    // angle 7 = 39.375 deg: cos=198 sin=162;  angle 37 = 208.125 deg: cos=-226 sin=-121
+    TEST_ASSERT(REG_TANK1_DIR == ((162U << 16) | 198U),
+                "REG_TANK1_DIR packs cos/sin of tank 1 angle");
+    TEST_ASSERT(REG_TANK2_DIR == ((((uint32_t)-121 & 0x3FFU) << 16) | ((uint32_t)-226 & 0x3FFU)),
+                "REG_TANK2_DIR packs cos/sin of tank 2 angle (negative cos and sin)");
+    TEST_ASSERT(((int32_t)(REG_TANK2_DIR << 22) >> 22) == g_cos_fp[37], "REG_TANK2_DIR cos field sign-extends back to the table value");
+    TEST_ASSERT(((int32_t)(REG_TANK2_DIR << 6) >> 22) == g_sin_fp[37], "REG_TANK2_DIR sin field sign-extends back to the table value");
 
     // Verify Bullet register: {big[21], act[20], y[19:10], x[9:0]}
     uint32_t expected_b2 = (1U << 21) | (1U << 20) | (150U << 10) | 200U;
@@ -572,7 +650,7 @@ static void test_suite_bricks_reset_and_tank_blocking(void) {
     // --- Tank vs tank blocking ---
     reset_mock_mmio();
     game_init();
-    g_p1.x_fp = TO_FP(100); g_p1.y_fp = TO_FP(150); g_p1.angle = 0;      // facing East
+    g_p1.x_fp = TO_FP(100); g_p1.y_fp = TO_FP(150); g_p1.angle = ANGLE_EAST; // facing East
     g_p2.x_fp = TO_FP(124); g_p2.y_fp = TO_FP(150);                      // 24 px ahead
     REG_P1_KEYS = BTN_FWD;
     for (int f = 0; f < 30; f++) game_update_tanks();
@@ -584,7 +662,7 @@ static void test_suite_bricks_reset_and_tank_blocking(void) {
 
     // P2 driving into P1
     g_p1.x_fp = TO_FP(200); g_p1.y_fp = TO_FP(150);
-    g_p2.x_fp = TO_FP(230); g_p2.y_fp = TO_FP(150); g_p2.angle = 8;      // facing West
+    g_p2.x_fp = TO_FP(230); g_p2.y_fp = TO_FP(150); g_p2.angle = ANGLE_WEST; // facing West
     REG_P2_KEYS = BTN_FWD;
     for (int f = 0; f < 30; f++) game_update_tanks();
     TEST_ASSERT(FROM_FP(g_p2.x_fp) >= FROM_FP(g_p1.x_fp) + TANK_SIZE, "P2 is blocked by P1 straight ahead");
@@ -593,7 +671,7 @@ static void test_suite_bricks_reset_and_tank_blocking(void) {
 
     // Reversing into the other tank is blocked too
     REG_P2_KEYS = 0;
-    g_p1.x_fp = TO_FP(300); g_p1.y_fp = TO_FP(150); g_p1.angle = 0;
+    g_p1.x_fp = TO_FP(300); g_p1.y_fp = TO_FP(150); g_p1.angle = ANGLE_EAST;
     g_p2.x_fp = TO_FP(270); g_p2.y_fp = TO_FP(150);
     REG_P1_KEYS = BTN_BWD;                                               // backing West into P2
     for (int f = 0; f < 30; f++) game_update_tanks();
@@ -601,7 +679,7 @@ static void test_suite_bricks_reset_and_tank_blocking(void) {
 
     // Diagonal approach slides, but never overlaps
     REG_P1_KEYS = 0;
-    g_p1.x_fp = TO_FP(150); g_p1.y_fp = TO_FP(150); g_p1.angle = 2;      // South-East
+    g_p1.x_fp = TO_FP(150); g_p1.y_fp = TO_FP(150); g_p1.angle = 8;      // South-East (45 deg)
     g_p2.x_fp = TO_FP(172); g_p2.y_fp = TO_FP(172);
     REG_P1_KEYS = BTN_FWD;
     int ok = 1;
@@ -613,7 +691,7 @@ static void test_suite_bricks_reset_and_tank_blocking(void) {
     TEST_ASSERT(ok, "No overlap at any frame during a diagonal approach");
 
     // Tanks that already overlap can always drive apart
-    g_p1.x_fp = TO_FP(100); g_p1.y_fp = TO_FP(150); g_p1.angle = 8;      // facing West
+    g_p1.x_fp = TO_FP(100); g_p1.y_fp = TO_FP(150); g_p1.angle = ANGLE_WEST; // facing West
     g_p2.x_fp = TO_FP(105); g_p2.y_fp = TO_FP(150);
     REG_P1_KEYS = BTN_FWD;
     game_update_tanks();
@@ -681,6 +759,7 @@ int main(void) {
     RUN_SUITE(test_suite_trig_and_fixed_point, "1. Trigonometry & Fixed-Point Math");
     RUN_SUITE(test_suite_game_init,            "2. Game Initialization & Hardware Reset");
     RUN_SUITE(test_suite_tank_steering,        "3. Tank Steering, Rotation & 360-Wrap");
+    RUN_SUITE(test_suite_arbitrary_angle_motion, "3b. Motion & Bullets Follow the Exact Angle");
     RUN_SUITE(test_suite_tank_movement_and_bounds, "4. Tank Movement & Arena Bounds Clamping");
     RUN_SUITE(test_suite_bullet_spawning,      "5. Bullet Spawning & Cooldown Invalidation");
     RUN_SUITE(test_suite_reflection_physics,   "6. 2D Angular Reflection & Bounce Limits");

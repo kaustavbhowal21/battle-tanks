@@ -57,7 +57,7 @@ module tb_game_engine_subsystem;
     wire [7:0] bullet_act;
     wire [7:0] bullet_big;
     wire [7:0] hp1, hp2;
-    wire [3:0] tank_ang1, tank_ang2;
+    wire signed [9:0] tank_cos1, tank_sin1, tank_cos2, tank_sin2;
 
     wire [8:0] col_tile_addr;
     wire [1:0] col_tile_data;
@@ -133,8 +133,10 @@ module tb_game_engine_subsystem;
         .bullet_big (bullet_big),
         .hp1        (hp1),
         .hp2        (hp2),
-        .tank_ang1  (tank_ang1),
-        .tank_ang2  (tank_ang2)
+        .tank_cos1  (tank_cos1),
+        .tank_sin1  (tank_sin1),
+        .tank_cos2  (tank_cos2),
+        .tank_sin2  (tank_sin2)
     );
 
     maze_tile_ram u_maze (

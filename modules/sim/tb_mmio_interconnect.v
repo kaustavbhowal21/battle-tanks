@@ -201,6 +201,31 @@ module tb_mmio_interconnect;
             $display("  [PASS] Sprite regfile write decoded correctly.");
         end
 
+        // Health (0x80) and the two barrel direction registers (0x84, 0x88) are inside the window,
+        // 0x8C is still decoded (the regfile ignores it), the next block (0x90) is not.
+        begin : spr_window_check
+            integer k;
+            reg [31:0] a_tab [0:4];
+            reg        exp_tab [0:4];
+            a_tab[0] = 32'h8000_0080; exp_tab[0] = 1'b1;
+            a_tab[1] = 32'h8000_0084; exp_tab[1] = 1'b1;
+            a_tab[2] = 32'h8000_0088; exp_tab[2] = 1'b1;
+            a_tab[3] = 32'h8000_008C; exp_tab[3] = 1'b1;
+            a_tab[4] = 32'h8000_0090; exp_tab[4] = 1'b0;
+            for (k = 0; k < 5; k = k + 1) begin
+                d_addr = a_tab[k];
+                d_we   = 1'b1;
+                #5;
+                if (cs_spr !== exp_tab[k] || wr_en_spr !== exp_tab[k]) begin
+                    $display("  [FAIL] Sprite window decode wrong at 0x%08h: cs_spr=%b wr_en_spr=%b expected %b",
+                             a_tab[k], cs_spr, wr_en_spr, exp_tab[k]);
+                    errors = errors + 1;
+                end else begin
+                    $display("  [PASS] 0x%08h %s the sprite regfile window.", a_tab[k], exp_tab[k] ? "is inside" : "is outside");
+                end
+            end
+        end
+
         // =====================================================================
         // Test 6: Maze Tile RAM Window (0x8000_0100)
         // =====================================================================

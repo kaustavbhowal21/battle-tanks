@@ -3,7 +3,8 @@
 // Fig 9: Sprite Engine
 // Per-Pixel Tank and Bullet Hit Test (x, y from VGA timing generator)
 //
-// Tanks (x2): 20x20 pixels with 16-angle turret direction and tread patterns.
+// Tanks (x2): 20x20 pixels with a turret barrel pointing in ANY direction (given as
+// a cos/sin vector from the register file) and tread patterns.
 // Bullets (x8): 6x6 circular disc (normal) and 10x10 circular disc (big).
 //
 // Unsigned subtraction (x - sx, y - sy) makes negative offsets huge (>= 1024),
@@ -25,10 +26,12 @@ module sprite_engine (
     // Tank MMIO registers from sprite_hud_regfile
     input  wire [9:0]  p1_tank_x,
     input  wire [9:0]  p1_tank_y,
-    input  wire [3:0]  tank_ang1,
+    input  wire signed [9:0] tank_cos1,   // barrel direction of tank 1 (x256)
+    input  wire signed [9:0] tank_sin1,
     input  wire [9:0]  p2_tank_x,
     input  wire [9:0]  p2_tank_y,
-    input  wire [3:0]  tank_ang2,
+    input  wire signed [9:0] tank_cos2,   // barrel direction of tank 2 (x256)
+    input  wire signed [9:0] tank_sin2,
 
     // Bullet MMIO registers
     input  wire [9:0]  bullet_x   [0:7],
@@ -75,40 +78,23 @@ module sprite_engine (
     //   - its distance ALONG the direction is between 2 and 11 pixels, and
     //   - its distance ACROSS (perpendicular to) the direction is <= ~1.75 half-px.
     // This gives the same 2-px wide barrel at the 4 cardinal angles and a clean
-    // 2..3-px wide diagonal line at 45 degrees. (The old per-angle quadrant tests
-    // filled a whole triangle at 45 degrees, which looked like a solid square.)
+    // 2..3-px wide diagonal line at 45 degrees, and works for every other angle too.
     //
     // Coordinates are in half pixels relative to the tank centre
-    // (u = 2*d - 19), trig values are scaled by 256 (same table as software).
+    // (u = 2*d - 19). The direction (c, s) is the unit vector scaled by 256 that the
+    // CPU wrote into the register file (same numbers the game physics uses), so no
+    // angle table is needed here any more.
     // =========================================================================
     function barrel_hit;
-        input [9:0] dx;
-        input [9:0] dy;
-        input [3:0] ang;
+        input [9:0]        dx;
+        input [9:0]        dy;
+        input signed [9:0] c;       // barrel direction: cos * 256 (-256..+256)
+        input signed [9:0] s;       // barrel direction: sin * 256 (-256..+256)
         reg signed [7:0]  ux, uy;
-        reg signed [10:0] c, s;
         reg signed [19:0] along, across;
         begin
             ux = $signed({2'b00, dx[4:0], 1'b0}) - 8'sd19;
             uy = $signed({2'b00, dy[4:0], 1'b0}) - 8'sd19;
-            case (ang)
-                4'd0:  begin c =  11'sd256; s =  11'sd0;   end
-                4'd1:  begin c =  11'sd237; s =  11'sd98;  end
-                4'd2:  begin c =  11'sd181; s =  11'sd181; end
-                4'd3:  begin c =  11'sd98;  s =  11'sd237; end
-                4'd4:  begin c =  11'sd0;   s =  11'sd256; end
-                4'd5:  begin c = -11'sd98;  s =  11'sd237; end
-                4'd6:  begin c = -11'sd181; s =  11'sd181; end
-                4'd7:  begin c = -11'sd237; s =  11'sd98;  end
-                4'd8:  begin c = -11'sd256; s =  11'sd0;   end
-                4'd9:  begin c = -11'sd237; s = -11'sd98;  end
-                4'd10: begin c = -11'sd181; s = -11'sd181; end
-                4'd11: begin c = -11'sd98;  s = -11'sd237; end
-                4'd12: begin c =  11'sd0;   s = -11'sd256; end
-                4'd13: begin c =  11'sd98;  s = -11'sd237; end
-                4'd14: begin c =  11'sd181; s = -11'sd181; end
-                default: begin c = 11'sd237; s = -11'sd98; end
-            endcase
             along  = ux * c + uy * s;
             across = ux * s - uy * c;
             barrel_hit = (along  >= 20'sd1024) && (along  <= 20'sd5632) &&
@@ -139,8 +125,8 @@ module sprite_engine (
                     rgb_t1 = 12'h06C; // Tank hull blue
                 end
             end
-            // Turret gun barrel (line in the direction of tank_ang1)
-            if (barrel_hit(dx_t1, dy_t1, tank_ang1)) begin hit_t1 = 1'b1; rgb_t1 = 12'h4CF; end
+            // Turret gun barrel (line along the direction vector of tank 1)
+            if (barrel_hit(dx_t1, dy_t1, tank_cos1, tank_sin1)) begin hit_t1 = 1'b1; rgb_t1 = 12'h4CF; end
         end
     end
 
@@ -166,8 +152,8 @@ module sprite_engine (
                     rgb_t2 = 12'hB11; // Tank hull red
                 end
             end
-            // Turret gun barrel (line in the direction of tank_ang2)
-            if (barrel_hit(dx_t2, dy_t2, tank_ang2)) begin hit_t2 = 1'b1; rgb_t2 = 12'hF44; end
+            // Turret gun barrel (line along the direction vector of tank 2)
+            if (barrel_hit(dx_t2, dy_t2, tank_cos2, tank_sin2)) begin hit_t2 = 1'b1; rgb_t2 = 12'hF44; end
         end
     end
 
