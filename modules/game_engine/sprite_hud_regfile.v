@@ -2,9 +2,19 @@
 //=============================================================================
 // Sprite & HUD Register File (Fig 5)
 //
-// 12 x 32-bit write-only MMIO registers.
-// Latches positions, health, angles, and bullet active/size flags from C code
-// and continuously drives the Collision Engine and VGA Display Engine.
+// 13 x 32-bit write-only MMIO registers (2 tank positions, 8 bullets, health, 2 barrel directions).
+// Latches positions, health, barrel direction vectors, and bullet active/size
+// flags from C code and continuously drives the Collision Engine and VGA Display
+// Engine.
+//
+// Barrel direction: instead of a coarse 4-bit angle, the CPU writes the barrel's
+// direction vector (cos, sin) of each tank, signed 10-bit values scaled by 256.
+// Any direction is therefore possible and the drawn barrel uses exactly the same
+// numbers as the game physics (movement and bullet velocity). cos and sin of one
+// tank sit in ONE register so they always update together (no half-updated vector).
+//
+//   0x8000_0084  P1 direction  {6'b0, sin[9:0], 6'b0, cos[9:0]}
+//   0x8000_0088  P2 direction  {6'b0, sin[9:0], 6'b0, cos[9:0]}
 //=============================================================================
 `ifndef SPRITE_HUD_REGFILE_V
 `define SPRITE_HUD_REGFILE_V
@@ -30,11 +40,15 @@ module sprite_hud_regfile (
     output wire [7:0]  bullet_act,
     output wire [7:0]  bullet_big,
 
-    // Health and Angles
+    // Health
     output wire [7:0]  hp1,
     output wire [7:0]  hp2,
-    output wire [3:0]  tank_ang1,
-    output wire [3:0]  tank_ang2
+
+    // Barrel direction vectors (signed, scaled by 256: -256..+256 = -1.0..+1.0)
+    output wire signed [9:0] tank_cos1,
+    output wire signed [9:0] tank_sin1,
+    output wire signed [9:0] tank_cos2,
+    output wire signed [9:0] tank_sin2
 );
 
     wire [5:0] reg_idx = d_addr[7:2];
@@ -43,7 +57,8 @@ module sprite_hud_regfile (
     reg [31:0] p2_tank_pos_q;
     reg [31:0] bullet_reg_q [0:7];
     reg [31:0] health_bar_reg_q;
-    reg [31:0] tank_angle_reg_q;
+    reg [31:0] tank1_dir_reg_q;
+    reg [31:0] tank2_dir_reg_q;
 
     integer j;
     always @(posedge clk or negedge reset_n) begin
@@ -54,7 +69,9 @@ module sprite_hud_regfile (
             for (j = 0; j < 8; j = j + 1)
                 bullet_reg_q[j] <= 32'd0;
             health_bar_reg_q <= {16'd0, 8'd20, 8'd20}; // hp2=20, hp1=20
-            tank_angle_reg_q <= 32'd0;
+            // P1 faces East (cos=+256, sin=0), P2 faces West (cos=-256, sin=0)
+            tank1_dir_reg_q  <= {6'd0, 10'sd0, 6'd0, 10'sd256};
+            tank2_dir_reg_q  <= {6'd0, 10'sd0, 6'd0, -10'sd256};
         end else if (wr_en_spr) begin
             case (reg_idx)
                 6'd16: p1_tank_pos_q <= d_wdata;     // 0x40
@@ -68,7 +85,8 @@ module sprite_hud_regfile (
                 6'd24: bullet_reg_q[6] <= d_wdata;   // 0x60
                 6'd25: bullet_reg_q[7] <= d_wdata;   // 0x64
                 6'd32: health_bar_reg_q <= d_wdata;  // 0x80
-                6'd33: tank_angle_reg_q <= d_wdata;  // 0x84
+                6'd33: tank1_dir_reg_q <= d_wdata;   // 0x84
+                6'd34: tank2_dir_reg_q <= d_wdata;   // 0x88
                 default: ;
             endcase
         end
@@ -91,11 +109,13 @@ module sprite_hud_regfile (
         end
     endgenerate
 
-    // Unpack health and angle
+    // Unpack health and barrel direction vectors
     assign hp1 = health_bar_reg_q[7:0];
     assign hp2 = health_bar_reg_q[15:8];
-    assign tank_ang1 = tank_angle_reg_q[3:0];
-    assign tank_ang2 = tank_angle_reg_q[7:4];
+    assign tank_cos1 = tank1_dir_reg_q[9:0];
+    assign tank_sin1 = tank1_dir_reg_q[25:16];
+    assign tank_cos2 = tank2_dir_reg_q[9:0];
+    assign tank_sin2 = tank2_dir_reg_q[25:16];
 
 endmodule
 

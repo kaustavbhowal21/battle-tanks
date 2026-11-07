@@ -23,9 +23,9 @@ module tb_vga_subsystem;
 
     // Sprite & HUD control inputs (simulating regfile outputs)
     reg  [9:0] p1_tank_x, p1_tank_y;
-    reg  [3:0] tank_ang1;
+    reg signed [9:0] tank_cos1, tank_sin1;   // barrel direction vectors (x256)
     reg  [9:0] p2_tank_x, p2_tank_y;
-    reg  [3:0] tank_ang2;
+    reg signed [9:0] tank_cos2, tank_sin2;
 
     reg  [9:0] bullet_x   [0:7];
     reg  [9:0] bullet_y   [0:7];
@@ -112,10 +112,12 @@ module tb_vga_subsystem;
         .active        (vga_active),
         .p1_tank_x     (p1_tank_x),
         .p1_tank_y     (p1_tank_y),
-        .tank_ang1     (tank_ang1),
+        .tank_cos1     (tank_cos1),
+        .tank_sin1     (tank_sin1),
         .p2_tank_x     (p2_tank_x),
         .p2_tank_y     (p2_tank_y),
-        .tank_ang2     (tank_ang2),
+        .tank_cos2     (tank_cos2),
+        .tank_sin2     (tank_sin2),
         .bullet_x      (bullet_x),
         .bullet_y      (bullet_y),
         .bullet_act    (bullet_act),
@@ -218,8 +220,8 @@ module tb_vga_subsystem;
         mock_maze_bram[25] = 2'b01; // Brick at (row 1, col 5)
 
         reset_n = 1'b0;
-        p1_tank_x = 10'd48;  p1_tank_y = 10'd48;  tank_ang1 = 4'd0; // East
-        p2_tank_x = 10'd410; p2_tank_y = 10'd410; tank_ang2 = 4'd8; // West
+        p1_tank_x = 10'd48;  p1_tank_y = 10'd48;  tank_cos1 = 10'sd256;  tank_sin1 = 10'sd0; // East
+        p2_tank_x = 10'd410; p2_tank_y = 10'd410; tank_cos2 = -10'sd256; tank_sin2 = 10'sd0; // West
 
         for (bi = 0; bi < 8; bi = bi + 1) begin
             bullet_x[bi] = 10'd0;

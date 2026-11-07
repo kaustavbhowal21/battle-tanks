@@ -58,6 +58,10 @@ def main():
                 val = struct.unpack("<I", chunk)[0]
                 words.append(val)
         
+        if len(words) > num_words:
+            raise SystemExit(f"ERROR: {bin_filename} is {len(words) * 4} bytes but the memory holds only "
+                             f"{num_words * 4} bytes. The image would be silently truncated -- shrink the program.")
+
         while len(words) < num_words:
             words.append(default_word)
 

@@ -3,8 +3,16 @@ ENTRY(_start)
 
 MEMORY
 {
-    ROM (rx)  : ORIGIN = 0x00000000, LENGTH = 4K
-    RAM (rwx) : ORIGIN = 0x00000000, LENGTH = 4K
+    /* Instruction memory: ONLY .text lives here, so the linker enforces the real
+       4 KB limit of imem on the code alone. */
+    ROM     (rx)  : ORIGIN = 0x00000000, LENGTH = 4K
+    /* Data memory (stack at the top). */
+    RAM     (rwx) : ORIGIN = 0x00000000, LENGTH = 4K
+    /* Load image of .rodata/.data. This is not a real memory: dmem.hex is built
+       straight from these sections by build_and_export.py (there is no copy loop
+       in crt0.s). Keeping it out of ROM stops the lookup tables from being
+       counted against the 4 KB of instruction memory. */
+    LOADIMG (r)   : ORIGIN = 0x00010000, LENGTH = 4K
 }
 
 SECTIONS
@@ -20,7 +28,7 @@ SECTIONS
         *(.rodata .rodata.*)
         *(.srodata .srodata.*)
         _erodata = .;
-    } > RAM AT > ROM
+    } > RAM AT > LOADIMG
 
     .data : {
         . = ALIGN(4);
@@ -28,7 +36,7 @@ SECTIONS
         *(.data .data.*)
         *(.sdata .sdata.*)
         _edata = .;
-    } > RAM AT > ROM
+    } > RAM AT > LOADIMG
 
     .bss : {
         . = ALIGN(4);

@@ -4,9 +4,11 @@
 #include <stdint.h>
 #include "game.h"
 
-// 16-angle lookup tables: cos(theta)*256 and sin(theta)*256
-extern const int16_t g_cos_fp[16];
-extern const int16_t g_sin_fp[16];
+// 64-angle lookup table (5.625 deg per step): sin(theta)*256, extended by a quarter
+// turn so that cos(theta)*256 is the same array read 16 entries further on.
+// Valid indices for both: 0 .. NUM_ANGLES-1.
+extern const int16_t g_sin_fp[NUM_ANGLES + NUM_ANGLES / 4];
+#define g_cos_fp   (&g_sin_fp[NUM_ANGLES / 4])
 
 // Check maze tile collision and destroy brick if destructible (using RV32M DIV)
 int physics_check_and_destroy_tile(int px, int py, int is_big);

@@ -52,13 +52,7 @@ extern uint32_t g_mock_mmio_space[1024];
 #define COLL_TANK_P1_HIT        (1U << 8)
 #define COLL_TANK_P2_HIT        (1U << 9)
 
-// 4. Performance & Cycle Profiling Telemetry Registers
-#define REG_PERF_VGA_TOTAL          MMIO_REG(0x0030) // Total cycles for 1 full VGA frame (840,000 @ 50MHz)
-#define REG_PERF_VGA_ACTIVE         MMIO_REG(0x0034) // Active visible display cycles (614,400 @ 50MHz)
-#define REG_PERF_COL_SWEEP          MMIO_REG(0x0038) // Clock cycles for 1 hardware collision sweep (8)
-#define REG_PERF_COL_FRAME_SWEEPS   MMIO_REG(0x003C) // Number of collision sweeps executed in 1 frame (105,000)
-
-// 5. Sprite & HUD Register File (Fig 5) -- matches sprite_hud_regfile.v
+// 4. Sprite & HUD Register File (Fig 5) -- matches sprite_hud_regfile.v
 // Tank position: {6'b0, y[9:0], 6'b0, x[9:0]}
 #define REG_SPRITE_P1_TANK      MMIO_REG(0x0040)
 #define REG_SPRITE_P2_TANK      MMIO_REG(0x0044)
@@ -67,12 +61,17 @@ extern uint32_t g_mock_mmio_space[1024];
 #define REG_SPRITE_BULLET(i)    MMIO_REG(0x0048 + ((i) * 4))
 
 #define REG_HUD_HEALTH          MMIO_REG(0x0080) // {16'b0, hp2[7:0], hp1[7:0]} (0..20 hearts)
-#define REG_TANK_ANGLES         MMIO_REG(0x0084) // {24'b0, ang2[3:0], ang1[3:0]}
+// Barrel direction vectors, one word per tank: {6'b0, sin[9:0], 6'b0, cos[9:0]}
+// cos/sin are signed 10-bit values scaled by 256 (range -256..+256), taken from
+// the same g_cos_fp / g_sin_fp tables the game physics uses, so the drawn barrel
+// always points exactly where the tank moves and shoots. Any angle is supported.
+#define REG_TANK1_DIR           MMIO_REG(0x0084)
+#define REG_TANK2_DIR           MMIO_REG(0x0088)
 
 #define HUD_HEALTH_PACK(hp1, hp2)   ((((uint32_t)(hp2) & 0xFFU) << 8) | ((uint32_t)(hp1) & 0xFFU))
 #define HUD_HEALTH_P1(reg)          ((reg) & 0xFFU)
 #define HUD_HEALTH_P2(reg)          (((reg) >> 8) & 0xFFU)
-#define TANK_ANGLES_PACK(a1, a2)    ((((uint32_t)(a2) & 0xFU) << 4) | ((uint32_t)(a1) & 0xFU))
+#define TANK_DIR_PACK(c, s)         ((((uint32_t)(s) & 0x3FFU) << 16) | ((uint32_t)(c) & 0x3FFU))
 #define SPRITE_POS_PACK(x, y)       ((((uint32_t)(y) & 0x3FFU) << 16) | ((uint32_t)(x) & 0x3FFU))
 #define SPRITE_BULLET_PACK(x, y, act, big) \
     ((((uint32_t)(big) & 1U) << 21) | (((uint32_t)(act) & 1U) << 20) | \
@@ -163,23 +162,6 @@ static inline void update_tank_sprite(int player, uint32_t x, uint32_t y) {
         REG_SPRITE_P1_TANK = val;
     else
         REG_SPRITE_P2_TANK = val;
-}
-
-// Telemetry & Cycle Profiling Getters
-static inline uint32_t get_vga_frame_cycles(void) {
-    return REG_PERF_VGA_TOTAL;
-}
-
-static inline uint32_t get_vga_active_cycles(void) {
-    return REG_PERF_VGA_ACTIVE;
-}
-
-static inline uint32_t get_collision_sweep_cycles(void) {
-    return REG_PERF_COL_SWEEP;
-}
-
-static inline uint32_t get_collision_frame_sweeps(void) {
-    return REG_PERF_COL_FRAME_SWEEPS;
 }
 
 #endif // MMIO_H

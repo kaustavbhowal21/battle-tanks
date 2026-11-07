@@ -2,7 +2,7 @@
 //=============================================================================
 // Testbench: Sprite Engine Verification
 // Verifies:
-// 1. Tank 1 (Green) 20x20 bounding box, treads, hull, dome, and 16-angle turret.
+// 1. Tank 1 (Green) 20x20 bounding box, treads, hull, dome, and turret barrel.
 // 2. Tank 2 (Red) 20x20 bounding box, treads, hull, and dome.
 // 3. Normal Bullets (6x6 circular disc test dx^2 + dy^2 <= 6, yellow 0xFF2).
 // 4. Big Bullets (10x10 circular disc test dx^2 + dy^2 <= 18, fiery orange 0xF30).
@@ -21,10 +21,10 @@ module tb_sprite_engine;
 
     reg  [9:0] p1_tank_x;
     reg  [9:0] p1_tank_y;
-    reg  [3:0] tank_ang1;
+    reg signed [9:0] tank_cos1, tank_sin1;   // barrel direction vectors (x256)
     reg  [9:0] p2_tank_x;
     reg  [9:0] p2_tank_y;
-    reg  [3:0] tank_ang2;
+    reg signed [9:0] tank_cos2, tank_sin2;
 
     reg  [9:0] bullet_x   [0:7];
     reg  [9:0] bullet_y   [0:7];
@@ -52,10 +52,12 @@ module tb_sprite_engine;
         .active        (active),
         .p1_tank_x     (p1_tank_x),
         .p1_tank_y     (p1_tank_y),
-        .tank_ang1     (tank_ang1),
+        .tank_cos1     (tank_cos1),
+        .tank_sin1     (tank_sin1),
         .p2_tank_x     (p2_tank_x),
         .p2_tank_y     (p2_tank_y),
-        .tank_ang2     (tank_ang2),
+        .tank_cos2     (tank_cos2),
+        .tank_sin2     (tank_sin2),
         .bullet_x      (bullet_x),
         .bullet_y      (bullet_y),
         .bullet_act    (bullet_act),
@@ -89,6 +91,81 @@ module tb_sprite_engine;
         end
     end
 
+
+    // -------------------------------------------------------------------------
+    // Independent reference for the barrel: the physical shape is a rectangle that
+    // starts 2 px and ends 11 px from the tank centre along the direction, and is
+    // +-0.875 px wide. Pixels are sampled at their centre. Uses real trigonometry of
+    // an arbitrary angle, NOT the integer formula inside the DUT.
+    // -------------------------------------------------------------------------
+    real PI = 3.14159265358979;
+    integer barrel_checked, barrel_skipped, barrel_errors;
+
+    // returns 1 = inside barrel, 0 = outside, 2 = too close to the edge to judge
+    function integer ref_barrel;
+        input integer ddx;
+        input integer ddy;
+        input real    ang;
+        real px, py, al, ac, m1, m2, m3, m;
+        begin
+            px = ddx + 0.5 - 10.0;
+            py = ddy + 0.5 - 10.0;
+            al = px * $cos(ang) + py * $sin(ang);
+            ac = px * $sin(ang) - py * $cos(ang);
+            if (ac < 0.0) ac = -ac;
+            m1 = al - 2.0;  if (m1 < 0.0) m1 = -m1;
+            m2 = al - 11.0; if (m2 < 0.0) m2 = -m2;
+            m3 = ac - 0.875; if (m3 < 0.0) m3 = -m3;
+            m = m1; if (m2 < m) m = m2; if (m3 < m) m = m3;
+            if (m < 0.2)
+                ref_barrel = 2;
+            else if (al >= 2.0 && al <= 11.0 && ac <= 0.875)
+                ref_barrel = 1;
+            else
+                ref_barrel = 0;
+        end
+    endfunction
+
+    // Sets the direction of one tank to angle `deg` (any real value, rounded to the
+    // same x256 integers the CPU would send) and compares every pixel of the
+    // 20x20 tank box (except the centre dome, which has the barrel colour) with the reference.
+    task check_barrel_angle;
+        input integer tank;     // 1 or 2
+        input real    deg;
+        integer ddx, ddy, r, hit;
+        integer ci, si;
+        real ang;
+        begin
+            ang = deg * PI / 180.0;
+            ci = $rtoi(256.0 * $cos(ang) + ($cos(ang) >= 0.0 ? 0.5 : -0.5));
+            si = $rtoi(256.0 * $sin(ang) + ($sin(ang) >= 0.0 ? 0.5 : -0.5));
+            if (tank == 1) begin tank_cos1 = ci; tank_sin1 = si; end
+            else           begin tank_cos2 = ci; tank_sin2 = si; end
+            for (ddy = 0; ddy < 20; ddy = ddy + 1) begin
+                for (ddx = 0; ddx < 20; ddx = ddx + 1) begin
+                    if (!(ddx >= 7 && ddx <= 12 && ddy >= 7 && ddy <= 12)) begin
+                        r = ref_barrel(ddx, ddy, ang);
+                        if (r == 2) begin
+                            barrel_skipped = barrel_skipped + 1;
+                        end else begin
+                            if (tank == 1) begin x = p1_tank_x + ddx; y = p1_tank_y + ddy; end
+                            else           begin x = p2_tank_x + ddx; y = p2_tank_y + ddy; end
+                            @(posedge clk); #1;
+                            if (tank == 1) hit = (tank_valid_p1 && tank_rgb_p1 == 12'h4CF);
+                            else           hit = (tank_valid_p2 && tank_rgb_p2 == 12'hF44);
+                            barrel_checked = barrel_checked + 1;
+                            if (hit != r) begin
+                                barrel_errors = barrel_errors + 1;
+                                $display("  [FAIL] tank %0d angle %0.2f deg (cos=%0d sin=%0d): pixel (%0d,%0d) barrel=%0d expected %0d",
+                                         tank, deg, ci, si, ddx, ddy, hit, r);
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    endtask
+
     initial begin
         $display("==========================================================");
         $display("   TESTBENCH: SPRITE ENGINE VERIFICATION                  ");
@@ -101,11 +178,11 @@ module tb_sprite_engine;
 
         p1_tank_x = 10'd50;
         p1_tank_y = 10'd50;
-        tank_ang1 = 4'd0; // East
+        tank_cos1 = 10'sd256; tank_sin1 = 10'sd0;   // East
 
         p2_tank_x = 10'd200;
         p2_tank_y = 10'd200;
-        tank_ang2 = 4'd8; // West
+        tank_cos2 = -10'sd256; tank_sin2 = 10'sd0;  // West
 
         for (bi = 0; bi < 8; bi = bi + 1) begin
             bullet_x[bi] = 10'd0;
@@ -251,6 +328,54 @@ module tb_sprite_engine;
             errors = errors + 1;
         end else begin
             $display("  [PASS] Inactive bullet correctly suppressed.");
+        end
+
+        // =====================================================================
+        // Test 6: Barrel points in ANY direction (cos/sin vector from the regfile)
+        // Every pixel of the tank box is compared with an independent floating-point
+        // model, for angles that are on and off the software's 5.625 deg grid.
+        // =====================================================================
+        $display("  [TEST 6] Testing turret barrel for arbitrary direction vectors...");
+        barrel_checked = 0; barrel_skipped = 0; barrel_errors = 0;
+        // tank 1 (blue) at (50,50)
+        check_barrel_angle(1,   0.0);     // East
+        check_barrel_angle(1,   5.625);   // one software step
+        check_barrel_angle(1,  11.25);
+        check_barrel_angle(1,  33.0);     // not on the software grid
+        check_barrel_angle(1,  45.0);
+        check_barrel_angle(1,  77.7);     // not on the software grid
+        check_barrel_angle(1,  90.0);     // South
+        check_barrel_angle(1, 123.4);
+        check_barrel_angle(1, 180.0);     // West
+        check_barrel_angle(1, 208.125);
+        check_barrel_angle(1, 270.0);     // North
+        check_barrel_angle(1, 301.0);
+        check_barrel_angle(1, 354.375);   // last software step before East
+        // tank 2 (red) at (200,200): the second channel is independent
+        check_barrel_angle(2, 180.0);
+        check_barrel_angle(2,  19.0);
+        check_barrel_angle(2, 250.0);
+        check_barrel_angle(2, 333.0);
+        $display("          %0d pixels compared with the reference, %0d edge pixels skipped.",
+                 barrel_checked, barrel_skipped);
+        if (barrel_errors != 0 || barrel_checked < 4000) begin
+            $display("  [FAIL] Barrel direction test: %0d mismatches, %0d pixels checked.",
+                     barrel_errors, barrel_checked);
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] Barrel matches the reference for all %0d tested directions.", 17);
+        end
+
+        // Tank 1's barrel must not move when only tank 2's vector changes
+        tank_cos1 = 10'sd256; tank_sin1 = 10'sd0;
+        tank_cos2 = 10'sd0;   tank_sin2 = 10'sd256;
+        x = p1_tank_x + 16; y = p1_tank_y + 9;
+        @(posedge clk); #1;
+        if (!(tank_valid_p1 && tank_rgb_p1 == 12'h4CF)) begin
+            $display("  [FAIL] Tank 1 barrel disturbed by tank 2 direction change.");
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] Tank 1 and tank 2 barrels are independent.");
         end
 
         $display("==========================================================");

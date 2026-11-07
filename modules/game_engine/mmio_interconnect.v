@@ -27,7 +27,6 @@ module mmio_interconnect (
     input  wire [31:0] rd_in,          // from Input Controller (0x8000_0000)
     input  wire [31:0] rd_tmr,         // from Cooldown Timers (0x8000_0010)
     input  wire [31:0] rd_col,         // from Collision Engine (0x8000_0020)
-    input  wire [31:0] rd_perf,        // from Cycle Profiling Telemetry (0x8000_0030)
     input  wire [31:0] rd_maze,        // from Maze RAM Copy V CPU port (0x8000_0100)
 
     // Subsystem Control Outputs (Fig 2a)
@@ -65,9 +64,10 @@ module mmio_interconnect (
     assign cs_col    = mmio_sel && (d_addr[11:4] == 8'h02);
     assign wr_en_col = cs_col && d_we;
 
-    // Sprite & HUD Register File: 0x8000_0040..0x7F and 0x8000_0080..0x87
-    // addr[11:6] == 6'h01 (0x40..0x7F) OR addr[11:3] == 9'h010 (0x80..0x87)
-    assign cs_spr    = mmio_sel && ((d_addr[11:6] == 6'h01) || (d_addr[11:3] == 9'h010));
+    // Sprite & HUD Register File: 0x8000_0040..0x7F and 0x8000_0080..0x8F
+    // addr[11:6] == 6'h01 (0x40..0x7F) OR addr[11:4] == 8'h08 (0x80..0x8F)
+    // (0x80 health, 0x84 / 0x88 tank 1 / tank 2 barrel direction vectors)
+    assign cs_spr    = mmio_sel && ((d_addr[11:6] == 6'h01) || (d_addr[11:4] == 8'h08));
     assign wr_en_spr = cs_spr && d_we;
 
     // Maze Tile RAM (400 words): 0x8000_0100..0x8000_073F (addr[11:8] in 1..7)
@@ -109,14 +109,12 @@ module mmio_interconnect (
     wire rcs_in    = rmmio_sel && (d_raddr[11:3] == 9'h000);
     wire rcs_tmr   = rmmio_sel && (d_raddr[11:3] == 9'h002);
     wire rcs_col   = rmmio_sel && (d_raddr[11:4] == 8'h02);
-    wire rcs_perf  = rmmio_sel && (d_raddr[11:4] == 8'h03);
     wire rcs_maze  = rmmio_sel && (d_raddr[11:8] >= 4'h1 && d_raddr[11:8] <= 4'h7);
 
     reg cs_dmem_q;
     reg cs_in_q;
     reg cs_tmr_q;
     reg cs_col_q;
-    reg cs_perf_q;
     reg cs_maze_q;
 
     always @(posedge clk or negedge reset_n) begin
@@ -125,24 +123,21 @@ module mmio_interconnect (
             cs_in_q   <= 1'b0;
             cs_tmr_q  <= 1'b0;
             cs_col_q  <= 1'b0;
-            cs_perf_q <= 1'b0;
             cs_maze_q <= 1'b0;
         end else begin
             cs_dmem_q <= rcs_dmem;
             cs_in_q   <= rcs_in;
             cs_tmr_q  <= rcs_tmr;
             cs_col_q  <= rcs_col;
-            cs_perf_q <= rcs_perf;
             cs_maze_q <= rcs_maze;
         end
     end
 
-    // 6-input AND-OR read multiplexer
+    // 5-input AND-OR read multiplexer
     assign d_rdata = ({32{cs_dmem_q}} & rd_dmem) |
                      ({32{cs_in_q}}   & rd_in)   |
                      ({32{cs_tmr_q}}  & rd_tmr)  |
                      ({32{cs_col_q}}  & rd_col)  |
-                     ({32{cs_perf_q}} & rd_perf) |
                      ({32{cs_maze_q}} & rd_maze);
 
 endmodule

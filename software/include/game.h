@@ -25,12 +25,21 @@
 #define FRAME_DELAY_ITERATIONS  166500
 #endif
 
+// Turret / tank direction: NUM_ANGLES discrete angles over a full circle
+// (64 -> 5.625 deg per step). Angle 0 = East, then clockwise on screen.
+#define NUM_ANGLES          64
+#define ANGLE_MASK          (NUM_ANGLES - 1)
+#define ANGLE_EAST          0
+#define ANGLE_SOUTH         (NUM_ANGLES / 4)
+#define ANGLE_WEST          (NUM_ANGLES / 2)
+#define ANGLE_NORTH         (3 * NUM_ANGLES / 4)
+
 // Game frames (~16.7 ms each at 60 FPS) between consecutive barrel rotation
-// steps (22.5 deg per step) while a breadboard turn button is held down.
-// 15 frames (~250 ms/step = 4 steps/s = 90 deg/s) makes turning to 45 deg
-// (2 steps) easy both by tapping twice and by holding briefly.
+// steps (5.625 deg per step) while a breadboard turn button is held down.
+// 3 frames (50 ms/step = 20 steps/s = 112.5 deg/s, a full turn in ~3.2 s).
+// A short tap turns exactly one step (5.625 deg) for fine aiming.
 #ifndef TURN_STEP_FRAMES
-#define TURN_STEP_FRAMES        15
+#define TURN_STEP_FRAMES        3
 #endif
 
 #define P1_BULLET_START     0
@@ -49,7 +58,7 @@
 typedef struct {
     int32_t  x_fp;
     int32_t  y_fp;
-    uint8_t  angle;     // 0..15 (step 22.5 deg)
+    uint8_t  angle;     // 0..NUM_ANGLES-1 (step 5.625 deg), 0 = East
     uint8_t  hp;        // 0..20 hearts
     uint16_t score;
 } Tank;

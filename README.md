@@ -25,7 +25,7 @@
 On a basic soft-core processor without hardware acceleration, drawing every pixel of a 640×480 screen in software, checking collisions across dozens of moving objects, and emulating multiplication and division in software would overwhelm the CPU and make real-time gameplay impossible. To achieve a smooth **60 FPS game loop** alongside a **640×480 @ 60 Hz VGA display**, our system combines software game logic with dedicated **hardware accelerators**:
 
 * **Custom 3-Stage RV32IM Soft-Core Processor:** Executes the compiled C game firmware and accelerates arithmetic using a single-cycle hardware multiplier and a 32-cycle hardware divider integrated directly into the Execute stage.
-* **Real-Time Hardware VGA Display Engine:** Renders the 20×20 maze arena, two 16-angle rotating tank sprites, up to 8 circular projectiles, and a 2×20-heart health bar display on the fly at 25 MHz without requiring a software frame buffer.
+* **Real-Time Hardware VGA Display Engine:** Renders the 20×20 maze arena, two tank sprites with a smoothly rotating (64-angle) gun barrel, up to 8 circular projectiles, and a 2×20-heart health bar display on the fly at 25 MHz without requiring a software frame buffer.
 * **Parallel Hardware Collision Engine:** Checks all 28 bullet-to-bullet pairs and 16 bullet-to-tank pairs in parallel on every clock cycle, while scanning bullet-to-wall hits across all 8 bullets every 8 clock cycles.
 * **Mirrored Dual-Port Maze Memory:** Maintains two synchronized copies of the 20×20 arena map in hardware so the VGA display engine, the collision engine, and the CPU can all access the maze simultaneously without stalling one another.
 * **Hardware Cooldown Timers:** Tracks 0.5-second normal fire and 20-second special attack reload times in dedicated parallel hardware counters so the CPU never has to run software timing loops.
@@ -34,10 +34,10 @@ On a basic soft-core processor without hardware acceleration, drawing every pixe
 
 * **`modules/cpu/`** — 3-stage RV32IM processor pipeline, instruction/data Block RAMs, single-cycle DSP multiplier, and 32-cycle radix-2 divider.
 * **`modules/game_engine/`** — Memory-mapped interconnect, parallel collision engine, mirrored dual-port maze RAM, hardware cooldown timers, sprite/HUD register file, and button debouncers.
-* **`modules/vga/`** — 640×480 @ 60 Hz VGA timing generator, maze tile renderer, 16-angle tank and bullet sprite engine, heart health HUD, and pixel priority mixer.
+* **`modules/vga/`** — 640×480 @ 60 Hz VGA timing generator, maze tile renderer, tank (any-direction barrel) and bullet sprite engine, heart health HUD, and pixel priority mixer.
 * **`modules/audio/`** — Event-driven PWM sound effects generator for firing, ricochets, hits, and tank explosions.
 * **`modules/sim/`** — 16 self-checking Verilog testbenches covering individual modules, subsystems, and full hardware-software co-simulation.
-* **`software/`** — Bare-metal C game source code, fixed-point physics engine, memory-mapped register definitions, automated firmware build script, and 129 host unit tests.
+* **`software/`** — Bare-metal C game source code, fixed-point physics engine, memory-mapped register definitions, automated firmware build script, and 482 host unit tests.
 * **`testing/`** — Automated Python test runners for the RV32IM CPU, Game Engine subsystem, and VGA display subsystem.
 * **`diagrams/`** — System architecture block diagrams, pipeline/peripheral timing diagrams, and presentation slides.
 
@@ -53,8 +53,8 @@ The monitor screen is split into two side-by-side areas separated by a vertical 
    * **Indestructible Steel Walls (Gray Beveled Blocks):** Form the outer boundary of the arena as well as interior pillar obstacles spaced every 4 rows and 4 columns. Bullets bounce off steel walls without damaging them.
    * **Destructible Brick Walls (Orange-Red Brick Blocks):** Located in the center of the arena as breakable cover. When hit by any bullet, a brick wall shatters into open floor while still reflecting the bullet.
    * **Arena Floor (Dark Green Tactical Grid):** Open ground where tanks can drive and maneuver freely.
-   * **Player 1 Tank (Green Tank, Top-Left Spawn):** A 20×20 pixel armored tank with treads, a central turret dome, and a gun barrel that rotates smoothly across **16 directions** (in 22.5° steps). Starts in the top-left corner at coordinates (48, 48) facing East.
-   * **Player 2 Tank (Red Tank, Bottom-Right Spawn):** A 20×20 pixel red armored tank with its own 16-direction rotating turret barrel. Starts in the bottom-right corner at coordinates (410, 410) facing West.
+   * **Player 1 Tank (Green Tank, Top-Left Spawn):** A 20×20 pixel armored tank with treads, a central turret dome, and a gun barrel that rotates smoothly across **64 directions** (in 5.625° steps). Starts in the top-left corner at coordinates (48, 48) facing East.
+   * **Player 2 Tank (Red Tank, Bottom-Right Spawn):** A 20×20 pixel red armored tank with its own 64-direction rotating turret barrel. Starts in the bottom-right corner at coordinates (410, 410) facing West.
    * **Normal Bullets (6×6 Yellow Circles):** Fast standard projectiles fired by the primary weapon.
    * **Special "Big" Bullets (10×10 Orange-Red Circles):** Larger, heavy cannon projectiles fired by the special weapon.
 
@@ -69,7 +69,7 @@ The monitor screen is split into two side-by-side areas separated by a vertical 
 Each player has **6 controls** and can perform the following actions during a match:
 
 1. **Rotate in 16 Directions (Turn Left / Turn Right):**
-   * Players can rotate their tank and gun barrel counter-clockwise or clockwise across 16 angles (22.5° per step, full 360° rotation) to aim precisely down corridors or set up angled bank shots.
+   * Players can rotate their tank and gun barrel counter-clockwise or clockwise across 64 angles (5.625° per step, full 360° rotation; holding the button turns about 112° per second) to aim precisely down corridors or set up angled bank shots.
 2. **Drive Forward and Backward:**
    * Tanks drive forward or reverse along the exact direction they are facing.
    * **Smooth Wall Sliding:** Horizontal and vertical movement components are checked separately against walls and the other tank, allowing tanks to slide smoothly along walls when approaching at an angle instead of getting stuck.
@@ -111,8 +111,8 @@ Each player has **6 controls** and can perform the following actions during a ma
 | :--- | :--- | :--- | :--- |
 | **Move Forward** | `BTNU` (`M18`) | `SW1` (`L16`) | Drive forward in the direction the tank is facing |
 | **Move Backward** | `BTND` (`P18`) | `SW2` (`M13`) | Reverse in the opposite direction |
-| **Turn Left** | `BTNL` (`P17`) | `SW3` (`R15`) | Rotate tank and turret 22.5° counter-clockwise |
-| **Turn Right** | `BTNR` (`M17`) | `SW4` (`R17`) | Rotate tank and turret 22.5° clockwise |
+| **Turn Left** | `BTNL` (`P17`) | `SW3` (`R15`) | Rotate tank and turret one 5.625° step counter-clockwise (hold to keep turning) |
+| **Turn Right** | `BTNR` (`M17`) | `SW4` (`R17`) | Rotate tank and turret one 5.625° step clockwise (hold to keep turning) |
 | **Primary Shoot** | `BTNC` (`N17`) | `SW5` (`T18`) | Fire normal bullet (2 hearts damage, 0.5 s cooldown) |
 | **Special Attack** | `SW0` (`J15`) | `SW6` (`U18`) | Fire heavy bullet (6 hearts damage, 20.0 s cooldown) |
 | **System Reset** | `CPU_RESETN` (`C12`) | `CPU_RESETN` (`C12`) | Reset game state, health bars, and brick walls |
@@ -218,12 +218,12 @@ cd battle-tanks
 ```
 
 #### Step 2: Run the C Game Logic & Physics Unit Tests (Runs on Any Laptop Without Vivado)
-You can test all 129 assertions covering tank movement, 16-angle trigonometry, wall reflection, brick destruction, and collision handling using your laptop's native C compiler:
+You can test all 129 assertions covering tank movement, 64-angle trigonometry, wall reflection, brick destruction, and collision handling using your laptop's native C compiler:
 ```bash
 gcc -Isoftware/include software/tests/test_game.c software/src/game.c software/src/physics.c -DHOST_TEST -o test_game
 ./test_game
 ```
-Expected output: `TEST EXECUTION SUMMARY: 129 RUN | 129 PASSED | 0 FAILED`.
+Expected output: `TEST EXECUTION SUMMARY: 482 RUN | 482 PASSED | 0 FAILED`.
 
 #### Step 3: Build the RISC-V Game Firmware (Optional if C Code Was Modified)
 ```bash
@@ -328,9 +328,9 @@ Rendering a 640×480 screen at 60 Hz requires generating **307,200 pixels per fr
 * **Procedural Maze Tile Renderer (`maze_tile_renderer.v`):**
   * Converts the current beam position into a tile row and column address and reads the 2-bit tile code from the Maze RAM.
   * Generates 3D beveled highlights and shadows for steel walls, brick-and-mortar patterns for destructible walls, and grid lines for the arena floor directly in hardware without bitmap textures.
-* **16-Angle Vector Tank & Circular Bullet Sprite Engine (`sprite_engine.v`):**
+* **Any-Direction Vector Tank & Circular Bullet Sprite Engine (`sprite_engine.v`):**
   * Tests whether the current pixel falls inside Player 1's tank, Player 2's tank, or any of the 8 bullets in parallel.
-  * **Hardware Vector Barrel Projection:** Instead of storing 16 separate rotated bitmap images per tank, the hardware projects each pixel's offset onto the tank's 16-angle sine/cosine direction vector in real time to draw a clean 2–3 pixel wide rotated gun barrel at any angle.
+  * **Hardware Vector Barrel Projection:** Instead of storing separate rotated bitmap images per tank, the hardware projects each pixel's offset onto the tank's sine/cosine direction vector in real time to draw a clean 2–3 pixel wide rotated gun barrel at any angle. The CPU writes the barrel direction as a (cos, sin) pair (`REG_TANK1_DIR` at `0x8000_0084`, `REG_TANK2_DIR` at `0x8000_0088`, signed 10-bit values scaled by 256) taken from the same 64-entry lookup table the game physics uses, so the drawn barrel always points exactly where the tank moves and shoots.
   * **Hardware Circle Equation Evaluators:** Evaluates the circle equation (`dx² + dy² ≤ r²`) in parallel for all 8 bullets to render smooth circular discs for both 6×6 normal and 10×10 special projectiles.
 * **Zero-Divider Bit-Sliced Health HUD (`health_hud.v`):**
   * In the right-hand 160-pixel HUD panel, each heart icon is sized to 8×8 pixels so hardware can determine the heart slot number (`0` to `19`) and the pixel offset inside the heart using simple wire bit-slicing (dividing and taking modulo by 8 with zero logic gates).

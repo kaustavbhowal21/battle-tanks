@@ -131,7 +131,6 @@ module top_fpga #(
     wire [31:0] rd_in;
     wire [31:0] rd_tmr;
     wire [31:0] rd_col;
-    wire [31:0] rd_perf;
     wire [31:0] rd_maze;
 
     // Interconnect chip-selects and write strobes
@@ -210,7 +209,6 @@ module top_fpga #(
         .rd_in       (rd_in),
         .rd_tmr      (rd_tmr),
         .rd_col      (rd_col),
-        .rd_perf     (rd_perf),
         .rd_maze     (rd_maze),
 
         .cs_dmem     (cs_dmem),
@@ -270,7 +268,8 @@ module top_fpga #(
     wire [7:0] bullet_act;
     wire [7:0] bullet_big;
     wire [7:0] hp1, hp2;
-    wire [3:0] tank_ang1, tank_ang2;
+    wire signed [9:0] tank_cos1, tank_sin1;
+    wire signed [9:0] tank_cos2, tank_sin2;
 
     sprite_hud_regfile u_sprites (
         .clk        (clk_sys),
@@ -289,8 +288,10 @@ module top_fpga #(
         .bullet_big (bullet_big),
         .hp1        (hp1),
         .hp2        (hp2),
-        .tank_ang1  (tank_ang1),
-        .tank_ang2  (tank_ang2)
+        .tank_cos1  (tank_cos1),
+        .tank_sin1  (tank_sin1),
+        .tank_cos2  (tank_cos2),
+        .tank_sin2  (tank_sin2)
     );
 
     // =========================================================================
@@ -320,8 +321,6 @@ module top_fpga #(
     // =========================================================================
     // 9. Hardware Collision Engine (Fig 6a..6d)
     // =========================================================================
-    wire [2:0] col_scan_idx;
-
     collision_engine u_collision (
         .clk         (clk_sys),
         .reset_n     (rst_n),
@@ -342,76 +341,8 @@ module top_fpga #(
         .d_addr      (mem_bus_addr),
         .d_raddr     (mem_rd_addr_q),
         .d_wdata     (dmem_write_data),
-        .rd_col      (rd_col),
-        .scan_idx    (col_scan_idx)
+        .rd_col      (rd_col)
     );
-
-    // =========================================================================
-    // 9b. Performance & Cycle Profiling Telemetry Unit
-    // Latches exact cycle counts for 1 full VGA frame & collision engine sweeps
-    // Accessible via MMIO:
-    //   0x8000_0030: Total clock cycles per 1 VGA frame (840,000 @ 50 MHz)
-    //   0x8000_0034: Active visible display cycles (614,400 @ 50 MHz)
-    //   0x8000_0038: Clock cycles for 1 complete collision sweep (8 cycles)
-    //   0x8000_003C: Completed collision sweeps per frame (105,000 sweeps)
-    // =========================================================================
-    reg [31:0] vga_frame_cycle_acc;
-    reg [31:0] vga_active_cycle_acc;
-    reg [31:0] col_sweep_acc;
-
-    reg [31:0] reg_perf_vga_total;
-    reg [31:0] reg_perf_vga_active;
-    reg [31:0] reg_perf_col_sweep;
-    reg [31:0] reg_perf_col_sweeps_per_frame;
-
-    wire col_sweep_tick = (col_scan_idx == 3'd7);
-
-    always @(posedge clk_sys or negedge rst_n) begin
-        if (!rst_n) begin
-            vga_frame_cycle_acc           <= 32'd0;
-            vga_active_cycle_acc          <= 32'd0;
-            col_sweep_acc                 <= 32'd0;
-            reg_perf_vga_total            <= 32'd840_000;
-            reg_perf_vga_active           <= 32'd614_400;
-            reg_perf_col_sweep            <= 32'd8;
-            reg_perf_col_sweeps_per_frame <= 32'd105_000;
-        end else begin
-            // Accumulate active visible cycles
-            if (vga_active)
-                vga_active_cycle_acc <= vga_active_cycle_acc + 32'd1;
-
-            // Track completed collision sweeps (8 clocks each)
-            if (col_sweep_tick)
-                col_sweep_acc <= col_sweep_acc + 32'd1;
-
-            // On VGA frame boundary (start of VBLANK), latch metrics
-            if (vga_frame_tick) begin
-                reg_perf_vga_total            <= vga_frame_cycle_acc + 32'd1;
-                reg_perf_vga_active           <= vga_active_cycle_acc;
-                reg_perf_col_sweep            <= 32'd8;
-                reg_perf_col_sweeps_per_frame <= col_sweep_acc;
-
-                vga_frame_cycle_acc           <= 32'd0;
-                vga_active_cycle_acc          <= 32'd0;
-                col_sweep_acc                 <= 32'd0;
-            end else begin
-                vga_frame_cycle_acc <= vga_frame_cycle_acc + 32'd1;
-            end
-        end
-    end
-
-    // MMIO Read Multiplexer for 0x8000_0030..0x8000_003C
-    reg [31:0] rd_perf_mux;
-    always @(*) begin
-        case (mem_rd_addr_q[3:2])
-            2'b00:   rd_perf_mux = reg_perf_vga_total;            // 0x8000_0030
-            2'b01:   rd_perf_mux = reg_perf_vga_active;           // 0x8000_0034
-            2'b10:   rd_perf_mux = reg_perf_col_sweep;            // 0x8000_0038
-            2'b11:   rd_perf_mux = reg_perf_col_sweeps_per_frame; // 0x8000_003C
-            default: rd_perf_mux = 32'd0;
-        endcase
-    end
-    assign rd_perf = rd_perf_mux;
 
     // =========================================================================
     // 10. VGA Display Subsystem (Fig 8..12)
@@ -475,10 +406,12 @@ module top_fpga #(
         .active        (vga_active),
         .p1_tank_x     (p1_tank_x),
         .p1_tank_y     (p1_tank_y),
-        .tank_ang1     (tank_ang1),
+        .tank_cos1     (tank_cos1),
+        .tank_sin1     (tank_sin1),
         .p2_tank_x     (p2_tank_x),
         .p2_tank_y     (p2_tank_y),
-        .tank_ang2     (tank_ang2),
+        .tank_cos2     (tank_cos2),
+        .tank_sin2     (tank_sin2),
         .bullet_x      (bullet_x),
         .bullet_y      (bullet_y),
         .bullet_act    (bullet_act),
