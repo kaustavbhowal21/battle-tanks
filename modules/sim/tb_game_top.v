@@ -158,6 +158,13 @@ module tb_game_top;
         $display("  Bullet Active Mask: 8'b%08b", dut.bullet_act);
         $display("  Exception Flag: %b", dut.exception);
         $display("  VGA HSync: %b, VSync: %b", vga_hsync, vga_vsync);
+        $display("----------------------------------------------------------");
+        $display("  HARDWARE CYCLE PROFILER (1 FRAME BREAKDOWN):");
+        $display("  - VGA Total Frame Cycles (50 MHz) : %0d cycles (16.800 ms)", dut.reg_perf_vga_total);
+        $display("  - VGA Active Visible Display      : %0d cycles (12.288 ms)", dut.reg_perf_vga_active);
+        $display("  - VGA Blanking Overhead           : %0d cycles (4.512 ms)", dut.reg_perf_vga_total - dut.reg_perf_vga_active);
+        $display("  - Hardware Collision Sweep Latency: %0d cycles (160 ns)", dut.reg_perf_col_sweep);
+        $display("  - Hardware Collision Sweeps/Frame : %0d sweeps/frame", dut.reg_perf_col_sweeps_per_frame);
         $display("==========================================================");
 
         if (!dut.exception) begin

@@ -33,7 +33,10 @@ module collision_engine (
     input  wire [31:0] d_addr,         // write address (W1C decode)
     input  wire [31:0] d_raddr,        // read address (independent of in-flight stores)
     input  wire [31:0] d_wdata,
-    output reg  [31:0] rd_col
+    output reg  [31:0] rd_col,
+
+    // Telemetry output for performance profiling (8-clock scanner phase)
+    output wire [2:0]  scan_idx
 );
 
     // =========================================================================
@@ -144,6 +147,7 @@ module collision_engine (
     // Time-shared across 8 bullets in 8 clocks (1 shared Maze RAM port)
     // =========================================================================
     reg [2:0] scan_q;
+    assign scan_idx = scan_q;
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n)
             scan_q <= 3'd0;

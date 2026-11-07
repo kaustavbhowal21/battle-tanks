@@ -3,7 +3,7 @@ import sys
 import subprocess
 import time
 
-VIVADO_BIN = r"D:\2025.2\Vivado\bin"
+VIVADO_BIN = r"C:\AMDDesignTools\2025.2\Vivado\bin" if os.path.exists(r"C:\AMDDesignTools\2025.2\Vivado\bin") else r"D:\2025.2\Vivado\bin"
 
 VGA_TESTS = [
     ("Maze Tile Renderer",   "tb_maze_tile_renderer",   ["modules/vga/maze_tile_renderer.v",   "modules/sim/tb_maze_tile_renderer.v"]),

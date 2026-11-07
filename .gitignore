@@ -55,3 +55,19 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Vivado Simulator & Synthesis Artifacts
+xsim.dir/
+.Xil/
+*.log
+*.pb
+*.jou
+*.wdb
+*.vcd
+dfx_runtime.txt
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

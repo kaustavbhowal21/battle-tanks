@@ -3,7 +3,7 @@ import sys
 import subprocess
 import time
 
-VIVADO_BIN = r"D:\2025.2\Vivado\bin"
+VIVADO_BIN = r"C:\AMDDesignTools\2025.2\Vivado\bin" if os.path.exists(r"C:\AMDDesignTools\2025.2\Vivado\bin") else r"D:\2025.2\Vivado\bin"
 
 TESTS = [
     ("Input Controller", "tb_input_controller", ["modules/game_engine/input_controller.v", "modules/sim/tb_input_controller.v"]),
