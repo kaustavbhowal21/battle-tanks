@@ -47,6 +47,7 @@ module IF_ID
     output        mem_to_reg_w,
     output        arithsubtype_w,
     output        m_extension_valid_w,
+    output        custom_valid_w,
     output [31:0] pc_w,
     output [4:0]  src1_select_w,
     output [4:0]  src2_select_w,
@@ -65,6 +66,7 @@ reg  [31:0] immediate;
 reg         illegal_inst;
 wire is_rv32m = (instruction_i[`OPCODE] == ARITHR) && 
                 (instruction_i[`FUNC7]  == FUNC7_RV32M);
+wire is_custom0 = (instruction_i[`OPCODE] == CUSTOM_0);
 
 ////////////////////////////////////////////////////////////// IF stage////////////////////////////////////////////////////////////
 
@@ -157,6 +159,7 @@ always @(*) begin
 
         // ARITH-R: no immediate
         ARITHR: immediate = 32'h0;
+        CUSTOM_0: immediate = 32'h0;
 
         // LUI / AUIPC (U-type): imm[31:12]=inst[31:12], imm[11:0]=0
         LUI,
@@ -206,6 +209,7 @@ id_ex_reg u_id_ex (
           instruction_i[`FUNC3] == ADD)
     ),
     .m_extension_valid_i (is_rv32m),
+    .custom_valid_i (is_custom0),
     .pc_i           (current_pc),
     .src1_sel_i     (instruction_i[`RS1]),
     .src2_sel_i     (instruction_i[`RS2]),
@@ -226,6 +230,7 @@ id_ex_reg u_id_ex (
     .mem_to_reg_o        (mem_to_reg_w),
     .arithsubtype_o      (arithsubtype_w),
     .m_extension_valid_o (m_extension_valid_w),
+    .custom_valid_o      (custom_valid_w),
     .pc_o                (pc_w),
     .src1_sel_o          (src1_select_w),
     .src2_sel_o          (src2_select_w),
@@ -256,6 +261,7 @@ module id_ex_reg (
     input         mem_to_reg_i,
     input         arithsubtype_i,
     input         m_extension_valid_i,
+    input         custom_valid_i,
     input  [31:0] pc_i,
     input  [4:0]  src1_sel_i,
     input  [4:0]  src2_sel_i,
@@ -276,6 +282,7 @@ module id_ex_reg (
     output reg        mem_to_reg_o,
     output reg        arithsubtype_o,
     output reg        m_extension_valid_o,
+    output reg        custom_valid_o,
     output reg [31:0] pc_o,
     output reg [4:0]  src1_sel_o,
     output reg [4:0]  src2_sel_o,
@@ -299,6 +306,7 @@ always @(posedge clk or negedge reset_n) begin
         mem_to_reg_o        <= 1'b0;
         arithsubtype_o      <= 1'b0;
         m_extension_valid_o <= 1'b0;
+        custom_valid_o      <= 1'b0;
         pc_o                <= 32'h0;
         src1_sel_o          <= 5'h0;
         src2_sel_o          <= 5'h0;
@@ -319,6 +327,7 @@ always @(posedge clk or negedge reset_n) begin
         mem_to_reg_o        <= mem_to_reg_i;
         arithsubtype_o      <= arithsubtype_i;
         m_extension_valid_o <= m_extension_valid_i;
+        custom_valid_o      <= custom_valid_i;
         pc_o                <= pc_i;
         src1_sel_o          <= src1_sel_i;
         src2_sel_o          <= src2_sel_i;

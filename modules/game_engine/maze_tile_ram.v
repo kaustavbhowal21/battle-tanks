@@ -28,7 +28,12 @@ module maze_tile_ram (
 
     // Collision Port B (Read-Only)
     input  wire [8:0]  col_tile_addr,  // 0..399
-    output reg  [1:0]  col_tile_data
+    output reg  [1:0]  col_tile_data,
+
+    // Hardware Destructible Wall Write-Back Port (from Collision Engine)
+    input  wire        hw_destroy_we,
+    input  wire [8:0]  hw_destroy_addr,
+    input  wire [1:0]  hw_destroy_data
 );
 
     // 400 entries x 2 bits each
@@ -84,10 +89,12 @@ module maze_tile_ram (
     // -------------------------------------------------------------------------
     // COPY V (Display Engine)
     // -------------------------------------------------------------------------
-    // Port A: CPU Write and Read
+    // Port A: CPU Write (priority) and Hardware Brick Destroy Write
     always @(posedge clk) begin
         if (we_cpu)
             ram_copy_v[cpu_tile_addr] <= d_wdata[1:0];
+        else if (hw_destroy_we)
+            ram_copy_v[hw_destroy_addr] <= hw_destroy_data;
         rd_maze <= {30'd0, ram_copy_v[cpu_rtile_addr]};
     end
 
@@ -99,10 +106,12 @@ module maze_tile_ram (
     // -------------------------------------------------------------------------
     // COPY C (Collision Engine)
     // -------------------------------------------------------------------------
-    // Port A: CPU Write (Mirror of Copy V)
+    // Port A: CPU Write (Mirror of Copy V) and Hardware Brick Destroy Write
     always @(posedge clk) begin
         if (we_cpu)
             ram_copy_c[cpu_tile_addr] <= d_wdata[1:0];
+        else if (hw_destroy_we)
+            ram_copy_c[hw_destroy_addr] <= hw_destroy_data;
     end
 
     // Port B: Collision Bullet-Wall Scanner Read

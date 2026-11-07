@@ -36,7 +36,12 @@ module collision_engine (
     output reg  [31:0] rd_col,
 
     // Telemetry output for performance profiling (8-clock scanner phase)
-    output wire [2:0]  scan_idx
+    output wire [2:0]  scan_idx,
+
+    // Hardware Destructible Wall Write-Back Interface (0 CPU cycles)
+    output wire        hw_brick_destroy_we,
+    output wire [8:0]  hw_brick_destroy_addr,
+    output wire [1:0]  hw_brick_destroy_data
 );
 
     // =========================================================================
@@ -182,22 +187,30 @@ module collision_engine (
             maze_c_addr <= calc_tile_addr;
     end
 
-    // 2-FF delay line for bullet index and active flag to align with BRAM read latency
+    // 2-FF delay line for bullet index, active flag, and tile address to align with BRAM read latency
     reg [2:0] scan_d1, scan_d2;
     reg       act_d1,  act_d2;
+    reg [8:0] addr_d1, addr_d2;
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             scan_d1 <= 3'd0; scan_d2 <= 3'd0;
             act_d1  <= 1'b0; act_d2  <= 1'b0;
+            addr_d1 <= 9'd0; addr_d2 <= 9'd0;
         end else begin
-            scan_d1 <= scan_q;  scan_d2 <= scan_d1;
-            act_d1  <= cur_act; act_d2  <= act_d1;
+            scan_d1 <= scan_q;       scan_d2 <= scan_d1;
+            act_d1  <= cur_act;      act_d2  <= act_d1;
+            addr_d1 <= maze_c_addr;  addr_d2 <= addr_d1;
         end
     end
 
-    // Wall detected: tile code 1 (wall) or 2 (breakable wall), i.e. tile != 0
+    // Wall detected: tile code 1 (brick) or 2 (steel), i.e. tile != 0
     wire is_wall = (maze_c_data[0] | maze_c_data[1]);
     wire wall_hit_now = is_wall && act_d2;
+
+    // Hardware Destructible Wall Write-Back Request (Tile code 2'b01 -> 2'b00 empty floor)
+    assign hw_brick_destroy_we   = act_d2 && (maze_c_data == 2'b01);
+    assign hw_brick_destroy_addr = addr_d2;
+    assign hw_brick_destroy_data = 2'b00;
 
     wire [7:0] wall_set = wall_hit_now ? (8'b00000001 << scan_d2) : 8'd0;
 

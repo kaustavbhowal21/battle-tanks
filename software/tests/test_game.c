@@ -626,6 +626,51 @@ static void test_suite_bricks_reset_and_tank_blocking(void) {
 }
 
 //=============================================================================
+// Suite 11: Hardware Accelerators & Custom Instructions (0x8000_0090..0x9C, 0x0B)
+//=============================================================================
+static void test_suite_hardware_accelerators(void) {
+    reset_mock_mmio();
+
+    // 1. Cycle Counter & RNG
+    REG_HW_CYCLES = 12345678U;
+    TEST_ASSERT(get_hw_cycles() == 12345678U, "Cycle counter register read matches written value");
+
+    REG_HW_RNG = 0xACE11234U;
+    TEST_ASSERT(get_hw_random() == 0xACE11234U, "Hardware RNG register returns valid pseudo-random word");
+
+    // 2. UART FIFO Status & Data
+    REG_UART_STATUS = (12U << 8) | UART_STATUS_FIFO_EMPTY;
+    TEST_ASSERT(UART_STATUS_COUNT(REG_UART_STATUS) == 12U, "UART FIFO occupancy count extracted correctly");
+    TEST_ASSERT((REG_UART_STATUS & UART_STATUS_FIFO_EMPTY) != 0, "UART FIFO empty flag recognized");
+
+    // 3. VBlank Sticky Flag & BCD Health
+    REG_VBLANK_BCD = 0x00020101U; // vblank=1, P1 BCD=20, P2 BCD=20
+    TEST_ASSERT((REG_VBLANK_BCD & 1U) == 1U, "VBlank sticky flag read back as 1");
+
+    // 4. Custom-0 MULQ16 & MULQ8
+    int32_t res_q16, res_q8, res_aabb;
+    // 1.5 (0x00018000) * 2.0 (0x00020000) in Q16.16 = 3.0 (0x00030000)
+    CUSTOM_MULQ16(res_q16, 0x00018000, 0x00020000);
+    TEST_ASSERT(res_q16 == 0x00030000, "CUSTOM_MULQ16 computes exact 1.5 * 2.0 = 3.0 in Q16.16");
+
+    // 1.5 (384) * 2.0 (512) in Q24.8 = 3.0 (768)
+    CUSTOM_MULQ8(res_q8, 384, 512);
+    TEST_ASSERT(res_q8 == 768, "CUSTOM_MULQ8 computes exact 1.5 * 2.0 = 3.0 in Q24.8");
+
+    // 5. Custom-0 AABB Box Overlap
+    // Box A at (100, 100), Box B at (105, 105) (overlap!)
+    uint32_t box_a = (100U << 16) | 100U;
+    uint32_t box_b = (105U << 16) | 105U;
+    CUSTOM_AABB(res_aabb, box_a, box_b);
+    TEST_ASSERT(res_aabb == 1, "CUSTOM_AABB detects overlapping boxes");
+
+    // Box C at (200, 200) (no overlap with Box A)
+    uint32_t box_c = (200U << 16) | 200U;
+    CUSTOM_AABB(res_aabb, box_a, box_c);
+    TEST_ASSERT(res_aabb == 0, "CUSTOM_AABB reports zero for non-overlapping boxes");
+}
+
+//=============================================================================
 // Main Test Runner Entrypoint
 //=============================================================================
 int main(void) {
@@ -643,6 +688,7 @@ int main(void) {
     RUN_SUITE(test_suite_collision_and_damage, "8. Collision Engine Handshake & Combat Damage");
     RUN_SUITE(test_suite_display_sync,         "9. MMIO Display & HUD Synchronization");
     RUN_SUITE(test_suite_bricks_reset_and_tank_blocking, "10. Bricks, Reset & Tank-vs-Tank Blocking");
+    RUN_SUITE(test_suite_hardware_accelerators, "11. Hardware Accelerators & Custom Instructions");
 
     printf("\n===================================================================\n");
     printf("  TEST EXECUTION SUMMARY: %d RUN | %d PASSED | %d FAILED\n",

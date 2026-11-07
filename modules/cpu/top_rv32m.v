@@ -8,6 +8,7 @@ module rv32m_top (
 
     // Control from ID/EX
     input  wire        m_extension_valid,  // Asserted when (OPCODE == ARITHR && FUNC7 == FUNC7_RV32M)
+    input  wire        custom_valid,       // Asserted when (OPCODE == CUSTOM_0)
     input  wire [2:0]  alu_op,             // funct3 field
     input  wire [31:0] operand_a,          // rs1 value
     input  wire [31:0] operand_b,          // rs2 value
@@ -20,9 +21,29 @@ module rv32m_top (
 
 `include "opcode.vh"
 
-    // Distinguish multiply vs divide operations
-    wire is_mul = m_extension_valid && (alu_op[2] == 1'b0); // MUL, MULH, MULHSU, MULHU (3'b000 - 3'b011)
-    wire is_div = m_extension_valid && (alu_op[2] == 1'b1); // DIV, DIVU, REM, REMU    (3'b100 - 3'b111)
+    // Distinguish multiply vs divide vs custom operations
+    wire is_custom_mul  = custom_valid && (alu_op == CUSTOM_MULQ16 || alu_op == CUSTOM_MULQ8);
+    wire is_custom_aabb = custom_valid && (alu_op == CUSTOM_AABB);
+    wire is_mul = (m_extension_valid && (alu_op[2] == 1'b0)) || is_custom_mul; // MUL..MULHU or MULQ
+    wire is_div = m_extension_valid && (alu_op[2] == 1'b1);                    // DIV, DIVU, REM, REMU
+
+    // Single-cycle hardware AABB box overlap unit (custom-0 funct3 == 3'b010)
+    // Supports packed ((x << 16) | y) with optional 6-bit width/height in [31:26] / [15:10]
+    // Defaults to 16x16 box if upper size bits are 0.
+    wire [9:0] aabb_ax = operand_a[25:16];
+    wire [9:0] aabb_ay = operand_a[9:0];
+    wire [9:0] aabb_bx = operand_b[25:16];
+    wire [9:0] aabb_by = operand_b[9:0];
+
+    wire [5:0] aabb_aw = (operand_a[31:26] != 6'd0) ? operand_a[31:26] : 6'd16;
+    wire [5:0] aabb_ah = (operand_a[15:10] != 6'd0) ? operand_a[15:10] : 6'd16;
+    wire [5:0] aabb_bw = (operand_b[31:26] != 6'd0) ? operand_b[31:26] : 6'd16;
+    wire [5:0] aabb_bh = (operand_b[15:10] != 6'd0) ? operand_b[15:10] : 6'd16;
+
+    wire aabb_hit = (aabb_ax < (aabb_bx + {4'd0, aabb_bw})) &&
+                    (aabb_bx < (aabb_ax + {4'd0, aabb_aw})) &&
+                    (aabb_ay < (aabb_by + {4'd0, aabb_bh})) &&
+                    (aabb_by < (aabb_ay + {4'd0, aabb_ah}));
 
     // Handshakes and intermediate outputs
     wire [31:0] mul_out;
@@ -43,11 +64,12 @@ module rv32m_top (
             div_started <= 1'b0;
     end
 
-    // 1. Instantiation of Multiplier
+    // 1. Instantiation of Multiplier (shared by RV32M and custom MULQ)
     multiplier_dsp u_mul (
         .clk       (clk),
         .reset_n   (reset_n),
         .start     (is_mul),
+        .is_custom (is_custom_mul),
         .funct3    (alu_op),
         .operand_a (operand_a),
         .operand_b (operand_b),
@@ -70,11 +92,13 @@ module rv32m_top (
 
     // Stall pipeline during multi-cycle division until ready asserts
     assign pipeline_stall = is_div && !div_ready;
-    assign m_ready        = is_mul ? mul_ready : div_ready;
+    assign m_ready        = is_custom_aabb ? 1'b1 : (is_mul ? mul_ready : div_ready);
 
     // Result Multiplexer
     always @(*) begin
-        if (is_mul)
+        if (is_custom_aabb)
+            m_result = {31'd0, aabb_hit};
+        else if (is_mul)
             m_result = mul_out;
         else if (is_div)
             m_result = div_out;

@@ -366,3 +366,68 @@ Tracking independent 0.5-second primary fire cooldowns and 20.0-second special a
   * **Primary Shoot Timers:** Load 500 ms (0.5 seconds) when triggered.
   * **Special Attack Timers:** Load 20,000 ms (20.0 seconds) when triggered.
 * When a counter reaches zero, its hardware `ready` bit asserts automatically. The CPU checks all four weapon cooldowns in a single clock cycle by reading one status register (`0x8000_0010`) and starts any cooldown with a single write (`0x8000_0014`).
+
+---
+
+### 6. Custom-0 RISC-V ISA Extension: Fixed-Point Multiply & Box Overlap (`modules/cpu/`)
+
+**What It Accelerates:**  
+Fixed-point calculations and 2D bounding-box overlap checks are the two hottest mathematical operations in 2D top-down action games. On standard RV32IM, a Q16.16 fixed-point multiply requires 5 instructions (`mul`, `mulh`, two shifts, and an `or`), and a 2D bounding-box overlap check requires roughly 14 instructions plus branch stalls.
+
+**How the Hardware Accelerator Works:**
+* Utilizes the standard RISC-V reserved **`custom-0` opcode (`7'b0001011` / `0x0B`)** decoded in `IF_ID.v`:
+  * **`CUSTOM_MULQ16` (`funct3 == 3'b000`):** Slices bits `[47:16]` directly from the 66-bit signed product computed by `multiplier_dsp.v`, performing a full Q16.16 multiply in **1 single clock cycle** (5× speedup, 0 extra DSP blocks).
+  * **`CUSTOM_MULQ8` (`funct3 == 3'b001`):** Slices bits `[39:8]` directly from `multiplier_dsp.v`, performing a Q24.8 fixed-point multiply in **1 single clock cycle** matching the game's `FP_SHIFT = 8` format.
+  * **`CUSTOM_AABB` (`funct3 == 3'b010`):** Packs two 16-bit coordinates `(x, y)` into each 32-bit register (`rs1 = (x1 << 16) | y1`, `rs2 = (x2 << 16) | y2`). Four parallel 16-bit subtractors in `execute.v` evaluate the 2D bounding-box intersection in **1 single clock cycle** without branching (~20× speedup).
+* Accessible in C code via GCC's standard `.insn` assembly directive macros defined in `software/include/mmio.h`.
+
+---
+
+### 7. Non-Blocking Hardware UART with 128-Byte FIFO (`modules/game_engine/mmio_interconnect.v`)
+
+**What It Accelerates:**  
+At 115,200 baud, transmitting a single ASCII byte takes 86.8 µs (4,340 clock cycles at 50 MHz). Printing a 40-character diagnostic or telemetry line using traditional polling stalls the CPU for roughly **173,600 clock cycles**—consuming 21% of the entire 60 Hz frame budget!
+
+**How the Hardware Accelerator Works:**
+* Integrates a dedicated **128-byte hardware ring-buffer FIFO** and 115,200-baud serializer directly into the MMIO controller at address `0x8000_0008`.
+* The CPU bursts up to 128 characters into the FIFO in **1 clock cycle each**, immediately returning to game logic while the hardware transmitter serializes data in the background over Nexys A7 pin `D4` (`uart_tx`).
+* Reduces the CPU cost of printing a 40-character status string from **~173,600 cycles down to ~140 cycles (>1,200× reduction in CPU blocking time)**.
+
+---
+
+### 8. 32-bit Cycle Counter & Galois LFSR Hardware Random Number Generator (`modules/top_fpga.v`)
+
+**What It Accelerates:**  
+Software pseudo-random number algorithms (like C standard `rand()`) require multiplications, additions, and modulo operations taking 15 to 100+ cycles. Furthermore, cycle-accurate performance benchmarking requires a hardware cycle register.
+
+**How the Hardware Accelerator Works:**
+* **Free-Running 32-bit Cycle Counter (`0x8000_0090`):** Increments on every 50 MHz clock cycle, providing nanosecond-accurate execution timing directly to software via a single load instruction.
+* **32-bit Galois LFSR RNG (`0x8000_0094`):** Implements maximal-length polynomial $x^{32} + x^{22} + x^2 + x^1 + 1$. Produces a new uniform 32-bit pseudo-random number on **every 20 ns clock cycle**, readable in **1 load instruction (2 cycles)** with zero CPU math and zero RAM overhead.
+
+---
+
+### 9. Hardware Double-Dabble (Shift-and-Add-3) BCD & 8×8 Font ROM (`modules/vga/health_hud.v`)
+
+**What It Accelerates:**  
+Converting binary integers into decimal digits for screen display normally requires repetitive hardware division and remainder operations (`/ 10` and `% 10`, each taking 32 cycles on an iterative divider).
+
+**How the Hardware Accelerator Works:**
+* Implements a combinational **Double-Dabble (Shift-and-Add-3)** converter that transforms binary health values (`hp1`, `hp2`) into two 4-bit BCD digits (tens and ones) combinationally with **zero dividers and zero clock cycles**.
+* A built-in 8×8 digit font ROM renders numeric health numbers ("20") directly onto the HUD panel in hardware without CPU drawing routines.
+
+---
+
+### 10. Autonomous Hardware Sound Engine (`modules/audio/sound_engine.v`)
+
+**What It Accelerates:**  
+Synthesizing real-time digital audio in software requires high-rate timer interrupts or polling loops (consuming 10,000–50,000+ cycles per frame) that degrade game performance.
+
+**How the Hardware Accelerator Works:**
+* Passively observes hardware signals (`bullet_act`, `hp1`, `hp2`, `u_collision.wall_any`, `u_collision.tank_hit_any`) with **0% CPU utilization**.
+* Synthesizes 4 distinct sound effects:
+  1. **Bullet Fire:** Downward frequency sweep square wave (pew-pew).
+  2. **Bullet Bounce:** High-frequency metallic chirp (pip/tink).
+  3. **Tank Damage:** Dissonant two-tone alarm tone.
+  4. **Tank Explosion:** Decaying LFSR white noise rumble (kaboom).
+* Drives Nexys A7 pin `A11` (`aud_pwm`) through high-frequency PWM and pin `D12` (`aud_sd`) to enable the onboard AD8592 audio amplifier.
+

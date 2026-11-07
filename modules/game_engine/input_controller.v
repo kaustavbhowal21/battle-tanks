@@ -86,6 +86,26 @@ module input_controller #(
     assign p1_btn_stable = debounced_outputs[5:0];
     assign p2_btn_stable = debounced_outputs[11:6];
 
+    // -------------------------------------------------------------------------
+    // Hardware Rising-Edge Button Press Latch (Quick-Tap Capture)
+    // -------------------------------------------------------------------------
+    // Captures rising edges (0 -> 1 transitions) on all 12 debounced buttons
+    // and holds them in bits [13:8] of the input register until the button is
+    // released or read, ensuring ultra-short taps are never missed.
+    reg [11:0] prev_debounced_q;
+    reg [11:0] edge_latched_q;
+    wire [11:0] rising_edges = debounced_outputs & ~prev_debounced_q;
+
+    always @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
+            prev_debounced_q <= 12'd0;
+            edge_latched_q   <= 12'd0;
+        end else begin
+            prev_debounced_q <= debounced_outputs;
+            edge_latched_q   <= (edge_latched_q & debounced_outputs) | rising_edges;
+        end
+    end
+
     // MMIO Read Mux (Fig 3 Part B)
     // d_addr[2] == 0 -> P1_INPUT_REG (0x8000_0000)
     // d_addr[2] == 1 -> P2_INPUT_REG (0x8000_0004)

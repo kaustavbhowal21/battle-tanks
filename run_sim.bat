@@ -19,7 +19,7 @@ if exist "C:\AMDDesignTools\2025.2\Vivado\bin\xvlog.bat" (
 )
 
 echo [2/3] Compiling and elaborating SystemVerilog modules...
-call "%VIV_BIN%xvlog.bat" --sv -i modules\cpu modules\cpu\pipeline.v modules\cpu\memory.v modules\cpu\multiplier_dsp.v modules\cpu\divider_radix2.v modules\cpu\top_rv32m.v modules\game_engine\collision_engine.v modules\game_engine\cooldown_timers.v modules\game_engine\sprite_hud_regfile.v modules\game_engine\input_controller.v modules\game_engine\maze_tile_ram.v modules\game_engine\mmio_interconnect.v modules\vga\vga_timing_gen.v modules\vga\maze_tile_renderer.v modules\vga\sprite_engine.v modules\vga\health_hud.v modules\vga\pixel_priority_mixer.v modules\top_fpga.v modules\sim\tb_game_top.v
+call "%VIV_BIN%xvlog.bat" --sv -i modules\cpu modules\cpu\pipeline.v modules\cpu\memory.v modules\cpu\multiplier_dsp.v modules\cpu\divider_radix2.v modules\cpu\top_rv32m.v modules\audio\sound_engine.v modules\game_engine\collision_engine.v modules\game_engine\cooldown_timers.v modules\game_engine\sprite_hud_regfile.v modules\game_engine\input_controller.v modules\game_engine\maze_tile_ram.v modules\game_engine\mmio_interconnect.v modules\vga\vga_timing_gen.v modules\vga\maze_tile_renderer.v modules\vga\sprite_engine.v modules\vga\health_hud.v modules\vga\pixel_priority_mixer.v modules\top_fpga.v modules\sim\tb_game_top.v
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Verilog compilation failed.
     exit /b %ERRORLEVEL%

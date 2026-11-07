@@ -8,7 +8,8 @@ TESTS = [
     "test_mul",
     "test_div",
     "test_auipc",
-    "test_rv32im_all"
+    "test_rv32im_all",
+    "test_custom_instructions"
 ]
 
 def bin_to_hex(bin_filename, hex_filename, num_words=1024, default_word=0):

@@ -29,7 +29,8 @@ localparam [6:0]  LUI        = 7'b0110111,       // U-type
                   LOAD       = 7'b0000011,       // I-type
                   STORE      = 7'b0100011,       // S-type
                   ARITHI     = 7'b0010011,       // I-type
-                  ARITHR     = 7'b0110011;       // R-type (Shared with RV32M)
+                  ARITHR     = 7'b0110011,       // R-type (Shared with RV32M)
+                  CUSTOM_0   = 7'b0001011;       // RISC-V custom-0 ISA extension (0x0B)
 
 // ----------------------------------------------------------------------------
 // Branch Conditions: FUNC3, INST[14:12] when OPCODE == BRANCH (7'b1100011)
@@ -89,3 +90,10 @@ localparam [2:0]  MUL        = 3'b000,   // Lower 32 bits of (signed x signed)
                   DIVU       = 3'b101,   // Unsigned division
                   REM        = 3'b110,   // Signed remainder
                   REMU       = 3'b111;   // Unsigned remainder
+
+// ----------------------------------------------------------------------------
+// Custom-0 ISA Extension Operations (OPCODE == CUSTOM_0 == 7'b0001011)
+// ----------------------------------------------------------------------------
+localparam [2:0]  CUSTOM_MULQ16 = 3'b000, // Q16.16 fixed-point multiply: (rs1 * rs2)[47:16]
+                  CUSTOM_MULQ8  = 3'b001, // Q24.8  fixed-point multiply: (rs1 * rs2)[39:8]
+                  CUSTOM_AABB   = 3'b010; // Single-cycle 2D box overlap test: ((x<<16)|y)

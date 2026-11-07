@@ -27,6 +27,7 @@ module execute
     input         branch,
     input         arithsubtype,
     input         m_extension_valid,
+    input         custom_valid,
     input         mem_to_reg,
     input         stall_read,
 
@@ -70,6 +71,7 @@ rv32m_top u_rv32m (
     .clk               (clk),
     .reset_n           (reset),
     .m_extension_valid (m_extension_valid && !branch_stall),
+    .custom_valid      (custom_valid && !branch_stall),
     .alu_op            (alu_op),             // funct3 [14:12]
     .operand_a         (alu_operand1),       // rs1
     .operand_b         (alu_operand2),       // rs2 (immediate_sel is 0 for R-type)
@@ -201,7 +203,8 @@ always @(*) begin
         jalr:      ex_result = pc + 32'd4;            // link address
         lui:       ex_result = execute_imm;
         auipc:     ex_result = pc + execute_imm;
-        m_extension_valid: ex_result = m_result;
+        m_extension_valid,
+        custom_valid: ex_result = m_result;
         alu: begin
             case (alu_op)
                 ADD : ex_result =
@@ -258,7 +261,7 @@ ex_mem_wb_reg u_ex_mem_wb (
     .mem_write      (mem_write && !branch_stall && !m_pipeline_stall),
     // BUG FIX: never mark x0 as a destination and never write back for an
     // instruction that is sitting in the branch shadow or during a multi-cycle DIV stall.
-    .alu_to_reg     ((alu | lui | auipc | jal | jalr | mem_to_reg | m_extension_valid) &&
+    .alu_to_reg     ((alu | lui | auipc | jal | jalr | mem_to_reg | m_extension_valid | custom_valid) &&
                     (dest_reg_sel != 5'd0) && !branch_stall && !m_pipeline_stall),
     .dest_reg_sel   (dest_reg_sel),
     .branch_taken   (branch_taken),

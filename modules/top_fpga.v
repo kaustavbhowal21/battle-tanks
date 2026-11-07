@@ -53,7 +53,10 @@ module top_fpga #(
 
     // Audio PWM Outputs (Nexys A7 3.5mm Mono Audio Jack J8)
     output wire        aud_pwm,
-    output wire        aud_sd
+    output wire        aud_sd,
+
+    // Hardware UART TX (Nexys A7 Micro-USB Bridge Pin D4)
+    output wire        uart_tx
 );
 
     // =========================================================================
@@ -223,7 +226,8 @@ module top_fpga #(
         .cs_spr      (cs_spr),
         .wr_en_spr   (wr_en_spr),
         .cs_maze     (cs_maze),
-        .wr_en_maze  (wr_en_maze)
+        .wr_en_maze  (wr_en_maze),
+        .uart_tx_pin (uart_tx)
     );
 
     // =========================================================================
@@ -271,26 +275,29 @@ module top_fpga #(
     wire [7:0] bullet_big;
     wire [7:0] hp1, hp2;
     wire [3:0] tank_ang1, tank_ang2;
+    wire       p1_flash_active, p2_flash_active;
 
     sprite_hud_regfile u_sprites (
-        .clk        (clk_sys),
-        .reset_n    (rst_n),
-        .wr_en_spr  (wr_en_spr),
-        .d_addr     (mem_bus_addr),
-        .d_wdata    (dmem_write_data),
+        .clk             (clk_sys),
+        .reset_n         (rst_n),
+        .wr_en_spr       (wr_en_spr),
+        .d_addr          (mem_bus_addr),
+        .d_wdata         (dmem_write_data),
 
-        .p1_tank_x  (p1_tank_x),
-        .p1_tank_y  (p1_tank_y),
-        .p2_tank_x  (p2_tank_x),
-        .p2_tank_y  (p2_tank_y),
-        .bullet_x   (bullet_x),
-        .bullet_y   (bullet_y),
-        .bullet_act (bullet_act),
-        .bullet_big (bullet_big),
-        .hp1        (hp1),
-        .hp2        (hp2),
-        .tank_ang1  (tank_ang1),
-        .tank_ang2  (tank_ang2)
+        .p1_tank_x       (p1_tank_x),
+        .p1_tank_y       (p1_tank_y),
+        .p2_tank_x       (p2_tank_x),
+        .p2_tank_y       (p2_tank_y),
+        .bullet_x        (bullet_x),
+        .bullet_y        (bullet_y),
+        .bullet_act      (bullet_act),
+        .bullet_big      (bullet_big),
+        .hp1             (hp1),
+        .hp2             (hp2),
+        .tank_ang1       (tank_ang1),
+        .tank_ang2       (tank_ang2),
+        .p1_flash_active (p1_flash_active),
+        .p2_flash_active (p2_flash_active)
     );
 
     // =========================================================================
@@ -301,20 +308,28 @@ module top_fpga #(
     wire [8:0] vga_tile_addr;
     wire [1:0] vga_tile_data;
 
+    wire       hw_brick_destroy_we;
+    wire [8:0] hw_brick_destroy_addr;
+    wire [1:0] hw_brick_destroy_data;
+
     maze_tile_ram u_maze (
-        .clk           (clk_sys),
-        .reset_n       (rst_n),
-        .wr_en_maze    (wr_en_maze),
-        .d_addr        (mem_bus_addr),
-        .d_raddr       (mem_rd_addr),
-        .d_wdata       (dmem_write_data),
-        .rd_maze       (rd_maze),
+        .clk             (clk_sys),
+        .reset_n         (rst_n),
+        .wr_en_maze      (wr_en_maze),
+        .d_addr          (mem_bus_addr),
+        .d_raddr         (mem_rd_addr),
+        .d_wdata         (dmem_write_data),
+        .rd_maze         (rd_maze),
 
-        .vga_tile_addr (vga_tile_addr),
-        .vga_tile_data (vga_tile_data),
+        .vga_tile_addr   (vga_tile_addr),
+        .vga_tile_data   (vga_tile_data),
 
-        .col_tile_addr (col_tile_addr),
-        .col_tile_data (col_tile_data)
+        .col_tile_addr   (col_tile_addr),
+        .col_tile_data   (col_tile_data),
+
+        .hw_destroy_we   (hw_brick_destroy_we),
+        .hw_destroy_addr (hw_brick_destroy_addr),
+        .hw_destroy_data (hw_brick_destroy_data)
     );
 
     // =========================================================================
@@ -323,38 +338,58 @@ module top_fpga #(
     wire [2:0] col_scan_idx;
 
     collision_engine u_collision (
-        .clk         (clk_sys),
-        .reset_n     (rst_n),
+        .clk                   (clk_sys),
+        .reset_n               (rst_n),
 
-        .p1_tank_x   (p1_tank_x),
-        .p1_tank_y   (p1_tank_y),
-        .p2_tank_x   (p2_tank_x),
-        .p2_tank_y   (p2_tank_y),
-        .bullet_x    (bullet_x),
-        .bullet_y    (bullet_y),
-        .bullet_act  (bullet_act),
-        .bullet_big  (bullet_big),
+        .p1_tank_x             (p1_tank_x),
+        .p1_tank_y             (p1_tank_y),
+        .p2_tank_x             (p2_tank_x),
+        .p2_tank_y             (p2_tank_y),
+        .bullet_x              (bullet_x),
+        .bullet_y              (bullet_y),
+        .bullet_act            (bullet_act),
+        .bullet_big            (bullet_big),
 
-        .maze_c_addr (col_tile_addr),
-        .maze_c_data (col_tile_data),
+        .maze_c_addr           (col_tile_addr),
+        .maze_c_data           (col_tile_data),
 
-        .wr_en_col   (wr_en_col),
-        .d_addr      (mem_bus_addr),
-        .d_raddr     (mem_rd_addr_q),
-        .d_wdata     (dmem_write_data),
-        .rd_col      (rd_col),
-        .scan_idx    (col_scan_idx)
+        .wr_en_col             (wr_en_col),
+        .d_addr                (mem_bus_addr),
+        .d_raddr               (mem_rd_addr_q),
+        .d_wdata               (dmem_write_data),
+        .rd_col                (rd_col),
+        .scan_idx              (col_scan_idx),
+
+        .hw_brick_destroy_we   (hw_brick_destroy_we),
+        .hw_brick_destroy_addr (hw_brick_destroy_addr),
+        .hw_brick_destroy_data (hw_brick_destroy_data)
     );
 
     // =========================================================================
-    // 9b. Performance & Cycle Profiling Telemetry Unit
+    // 9b. Performance & Cycle Profiling Telemetry Unit + Hardware Accelerators
     // Latches exact cycle counts for 1 full VGA frame & collision engine sweeps
     // Accessible via MMIO:
     //   0x8000_0030: Total clock cycles per 1 VGA frame (840,000 @ 50 MHz)
     //   0x8000_0034: Active visible display cycles (614,400 @ 50 MHz)
     //   0x8000_0038: Clock cycles for 1 complete collision sweep (8 cycles)
     //   0x8000_003C: Completed collision sweeps per frame (105,000 sweeps)
+    //
+    // Extended Hardware Acceleration & Telemetry Window (0x8000_0090..0x8000_009C):
+    //   0x8000_0090: Free-running 32-bit CPU clock cycle counter (50 MHz)
+    //   0x8000_0094: 32-bit Galois LFSR Hardware Random Number Generator
+    //   0x8000_0098: VBlank frame sync sticky flag & Double-Dabble BCD readout
+    //   0x8000_009C: Raster-time Pixel-Exact Collision Status
+    //                {14'd0, pix_tank_sticky_q[1:0], pix_wall_sticky_q[7:0], pix_btk_sticky_q[7:0]}
     // =========================================================================
+    wire [9:0] vga_beam_x;
+    wire [9:0] vga_beam_y;
+    wire       vga_active;
+    wire       vga_hsync_raw;
+    wire       vga_vsync_raw;
+    wire       vga_frame_tick;
+    wire       maze_pixel_wall;
+    wire [11:0] maze_pixel_rgb;
+
     reg [31:0] vga_frame_cycle_acc;
     reg [31:0] vga_active_cycle_acc;
     reg [31:0] col_sweep_acc;
@@ -363,6 +398,26 @@ module top_fpga #(
     reg [31:0] reg_perf_vga_active;
     reg [31:0] reg_perf_col_sweep;
     reg [31:0] reg_perf_col_sweeps_per_frame;
+
+    // Extended Hardware Accelerators (0x8000_0090..0x8000_009C):
+    // 1. Free-Running 32-bit Hardware Cycle Counter
+    reg [31:0] hw_cycle_cnt;
+    // 2. 32-bit Galois LFSR Hardware Random Number Generator (x^32 + x^22 + x^2 + x^1 + 1)
+    reg [31:0] hw_lfsr_rng;
+    // 3. VBlank Sticky Frame Flag (cleared on W1C write to 0x8000_0098)
+    reg        vblank_sticky_q;
+    wire       wr_en_vblank_clr = mem_bus_we && mem_bus_addr[31] && (mem_bus_addr[11:2] == 10'h026);
+    // 4. Raster-Time Pixel-Exact Collision Sticky Accumulators (W1C at 0x8000_009C)
+    reg [7:0]  pix_btk_sticky_q;
+    reg [7:0]  pix_wall_sticky_q;
+    reg [1:0]  pix_tank_sticky_q;
+    wire       wr_en_pix_col_clr = mem_bus_we && mem_bus_addr[31] && (mem_bus_addr[11:2] == 10'h027);
+
+    wire [7:0] bullet_any_hit;
+    wire [7:0] pix_col_btk1;
+    wire [7:0] pix_col_btk2;
+    wire [7:0] hud_p1_bcd;
+    wire [7:0] hud_p2_bcd;
 
     wire col_sweep_tick = (col_scan_idx == 3'd7);
 
@@ -375,7 +430,37 @@ module top_fpga #(
             reg_perf_vga_active           <= 32'd614_400;
             reg_perf_col_sweep            <= 32'd8;
             reg_perf_col_sweeps_per_frame <= 32'd105_000;
+            hw_cycle_cnt                  <= 32'd0;
+            hw_lfsr_rng                   <= 32'hACE1_1234;
+            vblank_sticky_q               <= 1'b0;
+            pix_btk_sticky_q              <= 8'd0;
+            pix_wall_sticky_q             <= 8'd0;
+            pix_tank_sticky_q             <= 2'd0;
         end else begin
+            // Free-running cycle counter (50 MHz)
+            hw_cycle_cnt <= hw_cycle_cnt + 32'd1;
+
+            // 32-bit Galois LFSR RNG
+            hw_lfsr_rng  <= {hw_lfsr_rng[30:0], 1'b0} ^ ({32{hw_lfsr_rng[31]}} & 32'h0040_0007);
+
+            // VBlank sticky flag
+            if (vga_frame_tick)
+                vblank_sticky_q <= 1'b1;
+            else if (wr_en_vblank_clr && dmem_write_data[0])
+                vblank_sticky_q <= 1'b0;
+
+            // Raster-time pixel-exact collision sticky accumulation
+            if (wr_en_pix_col_clr) begin
+                pix_btk_sticky_q  <= pix_btk_sticky_q  & ~dmem_write_data[7:0];
+                pix_wall_sticky_q <= pix_wall_sticky_q & ~dmem_write_data[15:8];
+                pix_tank_sticky_q <= pix_tank_sticky_q & ~dmem_write_data[17:16];
+            end else begin
+                pix_btk_sticky_q  <= pix_btk_sticky_q  | pix_col_btk1 | pix_col_btk2;
+                pix_wall_sticky_q <= pix_wall_sticky_q | ({8{maze_pixel_wall}} & bullet_any_hit);
+                if (|pix_col_btk1) pix_tank_sticky_q[0] <= 1'b1;
+                if (|pix_col_btk2) pix_tank_sticky_q[1] <= 1'b1;
+            end
+
             // Accumulate active visible cycles
             if (vga_active)
                 vga_active_cycle_acc <= vga_active_cycle_acc + 32'd1;
@@ -400,29 +485,32 @@ module top_fpga #(
         end
     end
 
-    // MMIO Read Multiplexer for 0x8000_0030..0x8000_003C
+    // MMIO Read Multiplexer for 0x8000_0030..0x3C and 0x8000_0090..0x9C
     reg [31:0] rd_perf_mux;
     always @(*) begin
-        case (mem_rd_addr_q[3:2])
-            2'b00:   rd_perf_mux = reg_perf_vga_total;            // 0x8000_0030
-            2'b01:   rd_perf_mux = reg_perf_vga_active;           // 0x8000_0034
-            2'b10:   rd_perf_mux = reg_perf_col_sweep;            // 0x8000_0038
-            2'b11:   rd_perf_mux = reg_perf_col_sweeps_per_frame; // 0x8000_003C
-            default: rd_perf_mux = 32'd0;
-        endcase
+        if (mem_rd_addr_q[7:4] == 4'h9) begin
+            case (mem_rd_addr_q[3:2])
+                2'b00:   rd_perf_mux = hw_cycle_cnt;                                                           // 0x8000_0090: Cycle Counter
+                2'b01:   rd_perf_mux = hw_lfsr_rng;                                                            // 0x8000_0094: LFSR RNG
+                2'b10:   rd_perf_mux = {14'd0, hud_p2_bcd, hud_p1_bcd, vga_active, vblank_sticky_q};          // 0x8000_0098: BCD + VBlank
+                2'b11:   rd_perf_mux = {14'd0, pix_tank_sticky_q, pix_wall_sticky_q, pix_btk_sticky_q};        // 0x8000_009C: Pixel Collision
+                default: rd_perf_mux = 32'd0;
+            endcase
+        end else begin
+            case (mem_rd_addr_q[3:2])
+                2'b00:   rd_perf_mux = reg_perf_vga_total;            // 0x8000_0030
+                2'b01:   rd_perf_mux = reg_perf_vga_active;           // 0x8000_0034
+                2'b10:   rd_perf_mux = reg_perf_col_sweep;            // 0x8000_0038
+                2'b11:   rd_perf_mux = reg_perf_col_sweeps_per_frame; // 0x8000_003C
+                default: rd_perf_mux = 32'd0;
+            endcase
+        end
     end
     assign rd_perf = rd_perf_mux;
 
     // =========================================================================
     // 10. VGA Display Subsystem (Fig 8..12)
     // =========================================================================
-    wire [9:0] vga_beam_x;
-    wire [9:0] vga_beam_y;
-    wire       vga_active;
-    wire       vga_hsync_raw;
-    wire       vga_vsync_raw;
-    wire       vga_frame_tick;
-
     vga_timing_gen u_vga_timing (
         .clk        (clk_sys),
         .reset_n    (rst_n),
@@ -440,9 +528,6 @@ module top_fpga #(
     );
 
     // Maze Tile Renderer (Fig 11)
-    wire        maze_pixel_wall;
-    wire [11:0] maze_pixel_rgb;
-
     maze_tile_renderer u_maze_render (
         .clk           (clk_sys),
         .reset_n       (rst_n),
@@ -467,30 +552,35 @@ module top_fpga #(
     wire [11:0] spr_big_rgb;
 
     sprite_engine u_sprites_render (
-        .clk           (clk_sys),
-        .reset_n       (rst_n),
-        .pix_ce        (pix_ce),
-        .x             (vga_beam_x),
-        .y             (vga_beam_y),
-        .active        (vga_active),
-        .p1_tank_x     (p1_tank_x),
-        .p1_tank_y     (p1_tank_y),
-        .tank_ang1     (tank_ang1),
-        .p2_tank_x     (p2_tank_x),
-        .p2_tank_y     (p2_tank_y),
-        .tank_ang2     (tank_ang2),
-        .bullet_x      (bullet_x),
-        .bullet_y      (bullet_y),
-        .bullet_act    (bullet_act),
-        .bullet_big    (bullet_big),
-        .tank_valid_p1 (spr_tank_valid_p1),
-        .tank_rgb_p1   (spr_tank_rgb_p1),
-        .tank_valid_p2 (spr_tank_valid_p2),
-        .tank_rgb_p2   (spr_tank_rgb_p2),
-        .bullet_valid  (spr_bullet_valid),
-        .bullet_rgb    (spr_bullet_rgb),
-        .big_valid     (spr_big_valid),
-        .big_rgb       (spr_big_rgb)
+        .clk             (clk_sys),
+        .reset_n         (rst_n),
+        .pix_ce          (pix_ce),
+        .x               (vga_beam_x),
+        .y               (vga_beam_y),
+        .active          (vga_active),
+        .p1_tank_x       (p1_tank_x),
+        .p1_tank_y       (p1_tank_y),
+        .tank_ang1       (tank_ang1),
+        .p2_tank_x       (p2_tank_x),
+        .p2_tank_y       (p2_tank_y),
+        .tank_ang2       (tank_ang2),
+        .bullet_x        (bullet_x),
+        .bullet_y        (bullet_y),
+        .bullet_act      (bullet_act),
+        .bullet_big      (bullet_big),
+        .tank_valid_p1   (spr_tank_valid_p1),
+        .tank_rgb_p1     (spr_tank_rgb_p1),
+        .tank_valid_p2   (spr_tank_valid_p2),
+        .tank_rgb_p2     (spr_tank_rgb_p2),
+        .bullet_valid    (spr_bullet_valid),
+        .bullet_rgb      (spr_bullet_rgb),
+        .big_valid       (spr_big_valid),
+        .big_rgb         (spr_big_rgb),
+        .p1_hit_flash_en (p1_flash_active),
+        .p2_hit_flash_en (p2_flash_active),
+        .bullet_any_hit  (bullet_any_hit),
+        .pix_col_btk1    (pix_col_btk1),
+        .pix_col_btk2    (pix_col_btk2)
     );
 
     // Health HUD (Fig 12)
@@ -507,7 +597,9 @@ module top_fpga #(
         .hp1       (hp1),
         .hp2       (hp2),
         .hud_valid (hud_pixel_valid),
-        .hud_rgb   (hud_pixel_rgb)
+        .hud_rgb   (hud_pixel_rgb),
+        .p1_bcd    (hud_p1_bcd),
+        .p2_bcd    (hud_p2_bcd)
     );
 
     // Pixel Priority Mixer & VGA DAC Registers (Fig 10)

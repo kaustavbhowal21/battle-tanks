@@ -94,3 +94,6 @@ set_property -dict { PACKAGE_PIN P14   IOSTANDARD LVCMOS33 } [get_ports { an[4] 
 set_property -dict { PACKAGE_PIN T14   IOSTANDARD LVCMOS33 } [get_ports { an[5] }];  # AN5 (DISP1 digit 5)
 set_property -dict { PACKAGE_PIN K2    IOSTANDARD LVCMOS33 } [get_ports { an[6] }];  # AN6 (DISP1 digit 6)
 set_property -dict { PACKAGE_PIN U13   IOSTANDARD LVCMOS33 } [get_ports { an[7] }];  # AN7 (DISP1 digit 7)
+
+## USB-UART Interface (FPGA transmits to PC via FT2232HQ USB-UART bridge)
+set_property -dict { PACKAGE_PIN D4    IOSTANDARD LVCMOS33 } [get_ports { uart_tx }]; # UART_RXD_OUT (PC reads this)

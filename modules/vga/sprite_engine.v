@@ -44,7 +44,16 @@ module sprite_engine (
     output reg         bullet_valid,
     output reg  [11:0] bullet_rgb,
     output reg         big_valid,
-    output reg  [11:0] big_rgb
+    output reg  [11:0] big_rgb,
+
+    // Hardware Hit-Flash Palette Overrides
+    input  wire        p1_hit_flash_en,
+    input  wire        p2_hit_flash_en,
+
+    // Raster-time Pixel-Exact Collision Detection Outputs (Atari 2600 / C64 style)
+    output wire [7:0]  bullet_any_hit,
+    output wire [7:0]  pix_col_btk1,
+    output wire [7:0]  pix_col_btk2
 );
 
     // =========================================================================
@@ -200,8 +209,12 @@ module sprite_engine (
     endgenerate
 
     // =========================================================================
-    // 3. Register Outputs to Priority Mixer (Fig 10)
+    // 3. Register Outputs to Priority Mixer (Fig 10) & Pixel Collision
     // =========================================================================
+    assign bullet_any_hit = bullet_norm_hit | bullet_big_hit;
+    assign pix_col_btk1   = {8{hit_t1}} & bullet_any_hit;
+    assign pix_col_btk2   = {8{hit_t2}} & bullet_any_hit;
+
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             tank_valid_p1 <= 1'b0;
@@ -214,10 +227,10 @@ module sprite_engine (
             big_rgb       <= 12'h000;
         end else begin
             tank_valid_p1 <= hit_t1;
-            tank_rgb_p1   <= rgb_t1;
+            tank_rgb_p1   <= (hit_t1 && (p1_hit_flash_en === 1'b1)) ? 12'hFFF : rgb_t1;
 
             tank_valid_p2 <= hit_t2;
-            tank_rgb_p2   <= rgb_t2;
+            tank_rgb_p2   <= (hit_t2 && (p2_hit_flash_en === 1'b1)) ? 12'hFFF : rgb_t2;
 
             bullet_valid  <= |bullet_norm_hit;
             bullet_rgb    <= 12'hFF2; // Bright incandescent yellow

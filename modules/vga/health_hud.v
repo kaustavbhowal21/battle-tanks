@@ -30,7 +30,11 @@ module health_hud (
     input  wire [7:0]  hp2,        // P2 live health (0..20)
 
     output reg         hud_valid,  // 1 if active HUD pixel
-    output reg  [11:0] hud_rgb     // 12-bit HUD color
+    output reg  [11:0] hud_rgb,    // 12-bit HUD color
+
+    // Double-Dabble BCD telemetry outputs
+    output wire [7:0]  p1_bcd,
+    output wire [7:0]  p2_bcd
 );
 
     // =========================================================================
@@ -62,6 +66,64 @@ module health_hud (
 
     // Arena vertical divider bar
     wire in_divider = active && (x == 10'd479 || x == 10'd480);
+
+    // =========================================================================
+    // 1b. Hardware Double-Dabble (Shift-and-Add-3) Binary-to-BCD Converter
+    //     & 8x8 Digit Character ROM (Zero Dividers, Zero CPU Cycles)
+    // =========================================================================
+    function [7:0] bin_to_bcd2;
+        input [7:0] bin;
+        reg [19:0] shift_reg;
+        integer s;
+        begin
+            shift_reg = {12'd0, bin};
+            for (s = 0; s < 8; s = s + 1) begin
+                if (shift_reg[11:8] >= 4'd5)
+                    shift_reg[11:8] = shift_reg[11:8] + 4'd3;
+                if (shift_reg[15:12] >= 4'd5)
+                    shift_reg[15:12] = shift_reg[15:12] + 4'd3;
+                if (shift_reg[19:16] >= 4'd5)
+                    shift_reg[19:16] = shift_reg[19:16] + 4'd3;
+                shift_reg = shift_reg << 1;
+            end
+            bin_to_bcd2 = shift_reg[15:8]; // {tens[3:0], ones[3:0]}
+        end
+    endfunction
+
+    assign p1_bcd = bin_to_bcd2(hp1);
+    assign p2_bcd = bin_to_bcd2(hp2);
+
+    // Compact 8x8 Font ROM for decimal digits 0..9 (packed 64-bit glyph per digit)
+    function [63:0] digit_glyph;
+        input [3:0] d;
+        begin
+            case (d)
+                4'd0: digit_glyph = 64'h3C_66_6E_76_66_66_3C_00;
+                4'd1: digit_glyph = 64'h18_38_18_18_18_18_7E_00;
+                4'd2: digit_glyph = 64'h3C_66_06_1C_30_60_7E_00;
+                4'd3: digit_glyph = 64'h3C_66_06_1C_06_66_3C_00;
+                4'd4: digit_glyph = 64'h0C_1C_2C_4C_7E_0C_0C_00;
+                4'd5: digit_glyph = 64'h7E_60_7C_06_06_66_3C_00;
+                4'd6: digit_glyph = 64'h3C_60_7C_66_66_66_3C_00;
+                4'd7: digit_glyph = 64'h7E_06_0C_18_18_18_18_00;
+                4'd8: digit_glyph = 64'h3C_66_66_3C_66_66_3C_00;
+                4'd9: digit_glyph = 64'h3C_66_66_3E_06_66_3C_00;
+                default: digit_glyph = 64'h0000_0000_0000_0000;
+            endcase
+        end
+    endfunction
+
+    wire in_p1_digits = in_hud_strip && (y >= 10'd12)  && (y <= 10'd19)  && (dx >= 10'd88) && (dx <= 10'd103);
+    wire in_p2_digits = in_hud_strip && (y >= 10'd420) && (y <= 10'd427) && (dx >= 10'd88) && (dx <= 10'd103);
+    wire [9:0] dig_dx = dx - 10'd88;
+    wire [2:0] p1_dig_py = y - 10'd12;
+    wire [2:0] p2_dig_py = y - 10'd420;
+    wire [63:0] p1_glyph = digit_glyph(dig_dx[3] ? p1_bcd[3:0] : p1_bcd[7:4]);
+    wire [63:0] p2_glyph = digit_glyph(dig_dx[3] ? p2_bcd[3:0] : p2_bcd[7:4]);
+    wire [5:0] p1_bit_idx = {3'd7 - p1_dig_py, 3'd7 - dig_dx[2:0]};
+    wire [5:0] p2_bit_idx = {3'd7 - p2_dig_py, 3'd7 - dig_dx[2:0]};
+    wire p1_dig_bit = p1_glyph[p1_bit_idx];
+    wire p2_dig_bit = p2_glyph[p2_bit_idx];
 
     // =========================================================================
     // 2. 8-row x 16-px Heart Sprite ROM (each original bit doubled horizontally)
@@ -102,10 +164,20 @@ module health_hud (
             hit_hud = 1'b1;
             rgb_hud = 12'h029; // P1 Blue Banner
         end
+        // P1 BCD Numeric Health Readout (Double-Dabble + Character ROM)
+        else if (in_p1_digits && p1_dig_bit) begin
+            hit_hud = 1'b1;
+            rgb_hud = 12'h4CF; // Bright Cyan-White Digits
+        end
         // P2 Banner
         else if (in_p2_banner) begin
             hit_hud = 1'b1;
             rgb_hud = 12'h902; // P2 Red Banner
+        end
+        // P2 BCD Numeric Health Readout (Double-Dabble + Character ROM)
+        else if (in_p2_digits && p2_dig_bit) begin
+            hit_hud = 1'b1;
+            rgb_hud = 12'hFA4; // Bright Orange-Yellow Digits
         end
         // P1 Hearts Row (10 per row, 2 rows)
         else if (in_p1_row && (heart_slot <= 4'd9)) begin

@@ -58,6 +58,20 @@ extern uint32_t g_mock_mmio_space[1024];
 #define REG_PERF_COL_SWEEP          MMIO_REG(0x0038) // Clock cycles for 1 hardware collision sweep (8)
 #define REG_PERF_COL_FRAME_SWEEPS   MMIO_REG(0x003C) // Number of collision sweeps executed in 1 frame (105,000)
 
+// 4b. Hardware UART Transmit Controller with 128-Byte FIFO (0x8000_0008)
+#define REG_UART_DATA               MMIO_REG(0x0008)
+#define REG_UART_STATUS             MMIO_REG(0x0008)
+#define UART_STATUS_TX_BUSY         (1U << 0)
+#define UART_STATUS_FIFO_FULL       (1U << 1)
+#define UART_STATUS_FIFO_EMPTY      (1U << 2)
+#define UART_STATUS_COUNT(reg)      (((reg) >> 8) & 0xFFU)
+
+// 4c. Extended Hardware Accelerators (0x8000_0090..0x8000_009C)
+#define REG_HW_CYCLES               MMIO_REG(0x0090) // 32-bit 50 MHz CPU cycle counter
+#define REG_HW_RNG                  MMIO_REG(0x0094) // 32-bit Galois LFSR pseudo-random generator
+#define REG_VBLANK_BCD              MMIO_REG(0x0098) // [0]=vblank sticky, [1]=vga_active, [9:2]=P1 BCD, [17:10]=P2 BCD
+#define REG_PIXEL_COLLISION         MMIO_REG(0x009C) // [7:0]=bullet-tank, [15:8]=bullet-wall, [17:16]=tank hit (W1C)
+
 // 5. Sprite & HUD Register File (Fig 5) -- matches sprite_hud_regfile.v
 // Tank position: {6'b0, y[9:0], 6'b0, x[9:0]}
 #define REG_SPRITE_P1_TANK      MMIO_REG(0x0040)
@@ -98,6 +112,62 @@ static inline uint32_t get_p1_input(void) {
 static inline uint32_t get_p2_input(void) {
     return REG_P2_KEYS;
 }
+
+static inline uint32_t get_hw_cycles(void) {
+    return REG_HW_CYCLES;
+}
+
+static inline uint32_t get_hw_random(void) {
+    return REG_HW_RNG;
+}
+
+static inline void wait_for_vblank(void) {
+    while (!(REG_VBLANK_BCD & 1U));
+    REG_VBLANK_BCD = 1U; // Write-1-to-clear sticky bit
+}
+
+static inline void uart_tx_byte(uint8_t b) {
+    while (REG_UART_STATUS & UART_STATUS_FIFO_FULL);
+    REG_UART_DATA = (uint32_t)b;
+}
+
+static inline void uart_print(const char *str) {
+    while (*str) {
+        uart_tx_byte((uint8_t)*str++);
+    }
+}
+
+// =============================================================================
+// RISC-V Custom-0 ISA Extension Macros (Opcode 0x0B = 7'b0001011)
+// =============================================================================
+#if defined(__riscv)
+// funct3 = 0 (CUSTOM_MULQ16): Q16.16 multiply -> (rs1 * rs2)[47:16]
+#define CUSTOM_MULQ16(rd, rs1, rs2) \
+    __asm__ volatile (".insn r 0x0B, 0, 0, %0, %1, %2" : "=r"(rd) : "r"(rs1), "r"(rs2))
+
+// funct3 = 1 (CUSTOM_MULQ8): Q24.8 multiply -> (rs1 * rs2)[39:8]
+#define CUSTOM_MULQ8(rd, rs1, rs2) \
+    __asm__ volatile (".insn r 0x0B, 1, 0, %0, %1, %2" : "=r"(rd) : "r"(rs1), "r"(rs2))
+
+// funct3 = 2 (CUSTOM_AABB): Single-cycle 2D AABB overlap check
+#define CUSTOM_AABB(rd, rs1, rs2) \
+    __asm__ volatile (".insn r 0x0B, 2, 0, %0, %1, %2" : "=r"(rd) : "r"(rs1), "r"(rs2))
+#else
+// Host simulation fallback macros
+#define CUSTOM_MULQ16(rd, rs1, rs2) \
+    ((rd) = (int32_t)(((int64_t)(int32_t)(rs1) * (int64_t)(int32_t)(rs2)) >> 16))
+
+#define CUSTOM_MULQ8(rd, rs1, rs2) \
+    ((rd) = (int32_t)(((int64_t)(int32_t)(rs1) * (int64_t)(int32_t)(rs2)) >> 8))
+
+#define CUSTOM_AABB(rd, rs1, rs2) do { \
+    int32_t _ax = ((rs1) >> 16) & 0x3FF; \
+    int32_t _ay = (rs1) & 0x3FF; \
+    int32_t _bx = ((rs2) >> 16) & 0x3FF; \
+    int32_t _by = (rs2) & 0x3FF; \
+    (rd) = (_ax < _bx + 16 && _bx < _ax + 16 && _ay < _by + 16 && _by < _ay + 16) ? 1 : 0; \
+} while(0)
+#endif
 
 static inline int is_p1_shoot_ready(void) {
     return (REG_TIMER_STATUS & TMR_P1_SHOOT) != 0;

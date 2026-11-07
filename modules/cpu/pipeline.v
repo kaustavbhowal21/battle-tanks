@@ -47,6 +47,7 @@ module pipe
     //Declaring Wires and Registers
 
     wire                m_extension_valid;
+    wire                custom_valid;
     wire                m_pipeline_stall;
 
     //Data Memory Wires
@@ -168,6 +169,7 @@ IF_ID #(.RESET(RESET)) IF_ID_stage (
     .mem_to_reg_w       (mem_to_reg),
     .arithsubtype_w     (arithsubtype),
     .m_extension_valid_w(m_extension_valid),
+    .custom_valid_w     (custom_valid),
     .pc_w               (pc),
     .src1_select_w      (src1_select),
     .src2_select_w      (src2_select),
@@ -258,6 +260,7 @@ execute #(.RESET(RESET)) execute (
     .branch         (branch),
     .arithsubtype   (arithsubtype),
     .m_extension_valid(m_extension_valid),
+    .custom_valid   (custom_valid),
     .mem_to_reg     (mem_to_reg),
     .stall_read     (stall_read),
 
