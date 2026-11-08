@@ -14,6 +14,8 @@ module tb_game_top;
 
     reg        clk;
     reg        reset;
+    reg        ps2_clk;
+    reg        ps2_data;
     reg  [5:0] p1_btn_raw;
     reg  [5:0] p2_btn_raw;
 
@@ -43,6 +45,8 @@ module tb_game_top;
     ) dut (
         .clk        (clk),
         .reset      (reset),
+        .ps2_clk    (ps2_clk),
+        .ps2_data   (ps2_data),
         .p1_btn_raw (p1_btn_raw),
         .p2_btn_raw (p2_btn_raw),
         .led        (led),
@@ -64,6 +68,8 @@ module tb_game_top;
 
         // Initial inputs
         reset      = 1'b0; // Assert active-low reset
+        ps2_clk    = 1'b1;
+        ps2_data   = 1'b1;
         p1_btn_raw = 6'b000000;
         p2_btn_raw = 6'b000000;
 

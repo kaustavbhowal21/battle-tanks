@@ -32,6 +32,10 @@ module top_fpga #(
     input  wire        clk,            // 100 MHz board oscillator (pin E3)
     input  wire        reset,          // active-low reset button (pin C12)
 
+    // USB Keyboard Interface (via onboard PIC24 USB Host to PS/2 interface on Nexys A7)
+    input  wire        ps2_clk,        // USB Host PS/2 Clock (pin F4)
+    input  wire        ps2_data,       // USB Host PS/2 Data  (pin B2)
+
     // Optional raw player buttons from board / breadboard
     input  wire [5:0]  p1_btn_raw,     // [0]=FWD, [1]=BWD, [2]=L, [3]=R, [4]=SHOOT, [5]=SPEC
     input  wire [5:0]  p2_btn_raw,
@@ -229,8 +233,31 @@ module top_fpga #(
     );
 
     // =========================================================================
-    // 5. Input Controller (Fig 3)
+    // 5. USB Keyboard Controller & Input Controller Subsystem (Fig 3)
     // =========================================================================
+    wire [5:0] p1_kb_raw;
+    wire [5:0] p2_kb_raw;
+    wire [7:0] kb_last_scancode;
+    wire       kb_event_strobe;
+
+    ps2_keyboard_controller #(
+        .CLK_FREQ_HZ (50_000_000)
+    ) u_keyboard (
+        .clk              (clk_sys),
+        .reset_n          (rst_n),
+        .ps2_clk          (ps2_clk),
+        .ps2_data         (ps2_data),
+        .p1_controls      (p1_kb_raw),
+        .p2_controls      (p2_kb_raw),
+        .last_scancode    (kb_last_scancode),
+        .key_event_strobe (kb_event_strobe),
+        .rx_err           ()
+    );
+
+    // Active player controls: Driven by USB keyboard, OR-ed with optional pin inputs
+    wire [5:0] p1_active_inputs = p1_btn_raw | p1_kb_raw;
+    wire [5:0] p2_active_inputs = p2_btn_raw | p2_kb_raw;
+
     wire [5:0] p1_btn_debounced;
     wire [5:0] p2_btn_debounced;
 
@@ -240,8 +267,8 @@ module top_fpga #(
     ) u_input (
         .clk           (clk_sys),
         .reset_n       (rst_n),
-        .p1_btn_raw    (p1_btn_raw),
-        .p2_btn_raw    (p2_btn_raw),
+        .p1_btn_raw    (p1_active_inputs),
+        .p2_btn_raw    (p2_active_inputs),
         .d_addr        (mem_rd_addr_q),
         .rd_in         (rd_in),
         .p1_btn_stable (p1_btn_debounced),

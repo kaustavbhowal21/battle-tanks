@@ -15,6 +15,7 @@ create_generated_clock -name clk_sys -source [get_ports { clk }] -divide_by 2 [g
 ## CPU Reset Button (Active Low CPU_RESETN red pushbutton)
 set_property -dict { PACKAGE_PIN C12   IOSTANDARD LVCMOS33 } [get_ports { reset }];
 
+
 ## Status / Debug Telemetry LEDs (LD0..LD15)
 set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS33 } [get_ports { led[0] }];  # Wall Hit
 set_property -dict { PACKAGE_PIN K15   IOSTANDARD LVCMOS33 } [get_ports { led[1] }];  # Bullet-Bullet Hit
@@ -32,6 +33,11 @@ set_property -dict { PACKAGE_PIN V15   IOSTANDARD LVCMOS33 } [get_ports { led[12
 set_property -dict { PACKAGE_PIN V14   IOSTANDARD LVCMOS33 } [get_ports { led[13] }]; # P1 SPECIAL (JA8)
 set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 } [get_ports { led[14] }]; # Game-loop heartbeat
 set_property -dict { PACKAGE_PIN V11   IOSTANDARD LVCMOS33 } [get_ports { led[15] }]; # Clock heartbeat
+
+## USB-HID Keyboard (via onboard PIC24 USB Host to PS/2 interface on Nexys A7)
+## Plug standard USB keyboard into USB Host connector J5
+set_property -dict { PACKAGE_PIN F4    IOSTANDARD LVCMOS33 PULLUP true } [get_ports { ps2_clk }];  # PS2_CLK
+set_property -dict { PACKAGE_PIN B2    IOSTANDARD LVCMOS33 PULLUP true } [get_ports { ps2_data }]; # PS2_DATA
 
 ## Player 1 Controls: breadboard 1 (6 push buttons) wired to Pmod header JA
 ##   Breadboard 3.3V rail -> JA pin 6 (VCC).  Each button connects its JA pin to 3.3V

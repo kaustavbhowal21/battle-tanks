@@ -6,6 +6,7 @@ import time
 VIVADO_BIN = r"C:\AMDDesignTools\2025.2\Vivado\bin" if os.path.exists(r"C:\AMDDesignTools\2025.2\Vivado\bin") else r"D:\2025.2\Vivado\bin"
 
 TESTS = [
+    ("PS/2 Keyboard Controller", "tb_ps2_keyboard", ["modules/game_engine/ps2_keyboard_controller.v", "modules/sim/tb_ps2_keyboard.v"]),
     ("Input Controller", "tb_input_controller", ["modules/game_engine/input_controller.v", "modules/sim/tb_input_controller.v"]),
     ("Cooldown Timers",  "tb_cooldown_timers",  ["modules/game_engine/cooldown_timers.v",  "modules/sim/tb_cooldown_timers.v"]),
     ("Maze Tile RAM",    "tb_maze_tile_ram",    ["modules/game_engine/maze_tile_ram.v",    "modules/sim/tb_maze_tile_ram.v"]),
