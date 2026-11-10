@@ -128,21 +128,32 @@ module tb_vga_subsystem;
         .tank_rgb_p2   (tank_rgb_p2),
         .bullet_valid  (bullet_valid),
         .bullet_rgb    (bullet_rgb),
-        .big_valid     (big_valid),
-        .big_rgb       (big_rgb)
+        .big_valid       (big_valid),
+        .big_rgb         (big_rgb),
+        .p1_hit_flash_en (1'b0),
+        .p2_hit_flash_en (1'b0),
+        .bullet_any_hit  (),
+        .pix_col_btk1    (),
+        .pix_col_btk2    ()
     );
 
     health_hud u_hud (
-        .clk       (clk),
-        .reset_n   (reset_n),
-        .pix_ce    (pix_ce),
-        .x         (vga_x),
-        .y         (vga_y),
-        .active    (vga_active),
-        .hp1       (hp1),
-        .hp2       (hp2),
-        .hud_valid (hud_valid),
-        .hud_rgb   (hud_rgb)
+        .clk         (clk),
+        .reset_n     (reset_n),
+        .pix_ce      (pix_ce),
+        .x           (vga_x),
+        .y           (vga_y),
+        .active      (vga_active),
+        .hp1         (hp1),
+        .hp2         (hp2),
+        .bar_p1_spec (7'd100),
+        .bar_p2_spec (7'd100),
+        .p1_keys     (6'd0),
+        .p2_keys     (6'd0),
+        .hud_valid   (hud_valid),
+        .hud_rgb     (hud_rgb),
+        .p1_bcd      (),
+        .p2_bcd      ()
     );
 
     pixel_priority_mixer u_mixer (
@@ -252,8 +263,8 @@ module tb_vga_subsystem;
             @(posedge clk);
             if (pix_ce) begin
 
-                // Check Tank 1 pixels (Bright green dome 0x0F4 or hull 0x0B0)
-                if (current_vga_rgb == 12'h0F4 || current_vga_rgb == 12'h0B0)
+                // Check Tank 1 pixels (Bright blue dome 0x4CF or hull 0x06C)
+                if (current_vga_rgb == 12'h4CF || current_vga_rgb == 12'h06C)
                     saw_p1_tank = 1;
 
                 // Check Tank 2 pixels (Bright red dome 0xF44 or hull 0xB11)

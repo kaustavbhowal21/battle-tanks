@@ -84,18 +84,39 @@ module top_fpga #(
     wire clk_sys = clk_sys_reg;
     wire pix_ce  = pix_ce_reg;
 
-    // Reset synchronizer for 50 MHz clock domain
-    reg rst_sync1, rst_sync2;
+    // Reset synchronizer for 50 MHz clock domain (board push-button)
+    reg rst_board_sync1, rst_board_sync2;
     always @(posedge clk_sys or negedge reset) begin
         if (!reset) begin
-            rst_sync1 <= 1'b0;
-            rst_sync2 <= 1'b0;
+            rst_board_sync1 <= 1'b0;
+            rst_board_sync2 <= 1'b0;
         end else begin
-            rst_sync1 <= 1'b1;
-            rst_sync2 <= rst_sync1;
+            rst_board_sync1 <= 1'b1;
+            rst_board_sync2 <= rst_board_sync1;
         end
     end
-    wire rst_n = rst_sync2;
+    wire rst_board_n = rst_board_sync2;
+
+    // Combined system reset: triggers on board button OR keyboard ESC key
+    // ESC key resets the game & CPU with a clean pulse stretch
+    wire       kb_esc_reset;
+    reg [15:0] esc_rst_cnt;
+    reg        sys_rst_n_q;
+    always @(posedge clk_sys or negedge rst_board_n) begin
+        if (!rst_board_n) begin
+            esc_rst_cnt <= 16'd0;
+            sys_rst_n_q <= 1'b0;
+        end else if (kb_esc_reset) begin
+            esc_rst_cnt <= 16'hFFFF; // ~1.3 ms pulse @ 50 MHz
+            sys_rst_n_q <= 1'b0;
+        end else if (esc_rst_cnt != 16'd0) begin
+            esc_rst_cnt <= esc_rst_cnt - 16'd1;
+            sys_rst_n_q <= 1'b0;
+        end else begin
+            sys_rst_n_q <= 1'b1;
+        end
+    end
+    wire rst_n = sys_rst_n_q;
 
     // =========================================================================
     // 2. CPU <-> Memory / MMIO Signals
@@ -244,11 +265,12 @@ module top_fpga #(
         .CLK_FREQ_HZ (50_000_000)
     ) u_keyboard (
         .clk              (clk_sys),
-        .reset_n          (rst_n),
+        .reset_n          (rst_board_n),
         .ps2_clk          (ps2_clk),
         .ps2_data         (ps2_data),
         .p1_controls      (p1_kb_raw),
         .p2_controls      (p2_kb_raw),
+        .esc_reset        (kb_esc_reset),
         .last_scancode    (kb_last_scancode),
         .key_event_strobe (kb_event_strobe),
         .rx_err           ()
@@ -278,15 +300,20 @@ module top_fpga #(
     // =========================================================================
     // 6. Cooldown Timers (Fig 4)
     // =========================================================================
+    wire [6:0] bar_p1_spec;
+    wire [6:0] bar_p2_spec;
+
     cooldown_timers #(
         .CLK_PER_MS(CLK_PER_MS)
     ) u_timers (
-        .clk       (clk_sys),
-        .reset_n   (rst_n),
-        .wr_en_tmr (wr_en_tmr),
-        .d_addr    (mem_bus_addr),
-        .d_wdata   (dmem_write_data),
-        .rd_tmr    (rd_tmr)
+        .clk             (clk_sys),
+        .reset_n         (rst_n),
+        .wr_en_tmr       (wr_en_tmr),
+        .d_addr          (mem_bus_addr),
+        .d_wdata         (dmem_write_data),
+        .rd_tmr          (rd_tmr),
+        .bar_p1_spec_out (bar_p1_spec),
+        .bar_p2_spec_out (bar_p2_spec)
     );
 
     // =========================================================================
@@ -616,18 +643,22 @@ module top_fpga #(
     wire [11:0] hud_pixel_rgb;
 
     health_hud u_hud_render (
-        .clk       (clk_sys),
-        .reset_n   (rst_n),
-        .pix_ce    (pix_ce),
-        .x         (vga_beam_x),
-        .y         (vga_beam_y),
-        .active    (vga_active),
-        .hp1       (hp1),
-        .hp2       (hp2),
-        .hud_valid (hud_pixel_valid),
-        .hud_rgb   (hud_pixel_rgb),
-        .p1_bcd    (hud_p1_bcd),
-        .p2_bcd    (hud_p2_bcd)
+        .clk         (clk_sys),
+        .reset_n     (rst_n),
+        .pix_ce      (pix_ce),
+        .x           (vga_beam_x),
+        .y           (vga_beam_y),
+        .active      (vga_active),
+        .hp1         (hp1),
+        .hp2         (hp2),
+        .bar_p1_spec (bar_p1_spec),
+        .bar_p2_spec (bar_p2_spec),
+        .p1_keys     (p1_active_inputs),
+        .p2_keys     (p2_active_inputs),
+        .hud_valid   (hud_pixel_valid),
+        .hud_rgb     (hud_pixel_rgb),
+        .p1_bcd      (hud_p1_bcd),
+        .p2_bcd      (hud_p2_bcd)
     );
 
     // Pixel Priority Mixer & VGA DAC Registers (Fig 10)

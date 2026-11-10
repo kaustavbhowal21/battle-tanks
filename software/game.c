@@ -5,7 +5,7 @@
 // Features:
 // 1. Two-player steering with 16-angle trigonometry (accelerated via RV32M MUL/DIV).
 // 2. Real-time 2D projectile tracking with angular wall reflection physics.
-// 3. Hardware cooldown timers (0.5s shoot, 20s special attack).
+// 3. Hardware cooldown timers (0.5s shoot, 10s special attack).
 // 4. Hardware collision engine polling with Write-1-to-Clear (W1C) handshake.
 // 5. Dynamic maze destruction: destructible bricks shattered in mirrored BRAM.
 // 6. Live MMIO update of all 12 Sprite, HUD, and Health registers.
@@ -234,7 +234,7 @@ static void update_tanks(void) {
             trigger_p1_shoot_cooldown();
         }
 
-        // Special attack (20s cooldown check)
+        // Special attack (10s cooldown check)
         if ((p1_keys & BTN_SPECIAL) && is_p1_spec_ready()) {
             spawn_bullet(1, 1);
             trigger_p1_spec_cooldown();

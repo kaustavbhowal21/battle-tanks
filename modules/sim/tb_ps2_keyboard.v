@@ -13,6 +13,7 @@ module tb_ps2_keyboard;
 
     wire [5:0] p1_controls;
     wire [5:0] p2_controls;
+    wire       esc_reset;
     wire [7:0] last_scancode;
     wire       key_event_strobe;
     wire       rx_err;
@@ -28,6 +29,7 @@ module tb_ps2_keyboard;
         .ps2_data         (ps2_data),
         .p1_controls      (p1_controls),
         .p2_controls      (p2_controls),
+        .esc_reset        (esc_reset),
         .last_scancode    (last_scancode),
         .key_event_strobe (key_event_strobe),
         .rx_err           (rx_err)
@@ -216,6 +218,18 @@ module tb_ps2_keyboard;
         send_ps2_byte(8'hF0); send_ps2_byte(8'h4D);
         #50;
         check_condition("P2 alternative keys released (p2==6'b000000)", p2_controls == 6'b000000);
+
+        // ---------------------------------------------------------------------
+        // Test 11: System Reset Key (ESC: 0x76)
+        // ---------------------------------------------------------------------
+        $display("\n--- Test 11: ESC Key (System Reset: 0x76) ---");
+        send_ps2_byte(8'h76); // ESC make
+        #50;
+        check_condition("ESC pressed asserts esc_reset (esc_reset==1)", esc_reset == 1'b1);
+
+        send_ps2_byte(8'hF0); send_ps2_byte(8'h76); // ESC break
+        #50;
+        check_condition("ESC released deasserts esc_reset (esc_reset==0)", esc_reset == 1'b0);
 
         // ---------------------------------------------------------------------
         // Final Summary

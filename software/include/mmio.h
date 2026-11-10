@@ -40,9 +40,9 @@ extern uint32_t g_mock_mmio_space[1024];
 
 // Bit order matches hardware (cooldown_timers.v): {P2 spec, P2 shoot, P1 spec, P1 shoot}
 #define TMR_P1_SHOOT            (1U << 0) // 0.5s primary fire
-#define TMR_P1_SPECIAL          (1U << 1) // 20.0s special attack
+#define TMR_P1_SPECIAL          (1U << 1) // 10.0s special attack
 #define TMR_P2_SHOOT            (1U << 2) // 0.5s primary fire
-#define TMR_P2_SPECIAL          (1U << 3) // 20.0s special attack
+#define TMR_P2_SPECIAL          (1U << 3) // 10.0s special attack
 
 // 3. Hardware Collision Engine (Write-1-to-Clear sticky registers) (Fig 6a..6d)
 #define REG_COLLISION_FLAG      MMIO_REG(0x0020) // [0] wall, [1] bullet-bullet, [2] tank hit (any)

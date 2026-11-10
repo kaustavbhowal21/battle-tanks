@@ -55,7 +55,10 @@ module ps2_keyboard_controller #(
     // Diagnostics / Telemetry
     output reg  [7:0]  last_scancode,
     output reg         key_event_strobe,
-    output reg         rx_err
+    output reg         rx_err,
+
+    // Keyboard ESC Reset Output (Active-High when ESC key is held)
+    output wire        esc_reset
 );
 
     // =========================================================================
@@ -209,6 +212,7 @@ module ps2_keyboard_controller #(
     localparam [7:0] SCAN_DOT      = 8'h49; // Main Period .
     localparam [7:0] SCAN_NUM0     = 8'h70; // Numpad 0 (Insert)
     localparam [7:0] SCAN_NUMDOT   = 8'h71; // Numpad . (Delete)
+    localparam [7:0] SCAN_ESC      = 8'h76; // Esc key
 
     reg is_extended;
     reg is_break;
@@ -219,6 +223,7 @@ module ps2_keyboard_controller #(
     reg key_i, key_k, key_j, key_l;
     reg key_enter, key_slash, key_o;
     reg key_rshift, key_p, key_dot;
+    reg key_esc;
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -250,6 +255,7 @@ module ps2_keyboard_controller #(
             key_rshift       <= 1'b0;
             key_p            <= 1'b0;
             key_dot          <= 1'b0;
+            key_esc          <= 1'b0;
         end else begin
             key_event_strobe <= 1'b0;
 
@@ -307,6 +313,7 @@ module ps2_keyboard_controller #(
                             SCAN_DOT:   key_dot   <= ~is_break;
                             SCAN_NUM0:  key_enter <= ~is_break;
                             SCAN_NUMDOT:key_dot   <= ~is_break;
+                            SCAN_ESC:   key_esc   <= ~is_break;
                             default: ;
                         endcase
                     end
@@ -353,6 +360,8 @@ module ps2_keyboard_controller #(
         key_down  | key_k,             // [1] BWD
         key_up    | key_i              // [0] FWD
     };
+
+    assign esc_reset = key_esc;
 
 endmodule
 

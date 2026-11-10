@@ -19,7 +19,11 @@ module cooldown_timers #(
     input  wire        wr_en_tmr,
     input  wire [31:0] d_addr,
     input  wire [31:0] d_wdata,
-    output wire [31:0] rd_tmr
+    output wire [31:0] rd_tmr,
+
+    // Hardware special attack cooldown bar fill levels (0 = empty, 100 = full/ready)
+    output wire [6:0]  bar_p1_spec_out,
+    output wire [6:0]  bar_p2_spec_out
 );
 
     // =========================================================================
@@ -50,17 +54,22 @@ module cooldown_timers #(
     // =========================================================================
     // Part B: 4 Down-Counter Channels
     // Channel 0: P1 shoot   (500 ms = 0.5 s)
-    // Channel 1: P1 special (20,000 ms = 20 s)
+    // Channel 1: P1 special (10,000 ms = 10 s)
     // Channel 2: P2 shoot   (500 ms = 0.5 s)
-    // Channel 3: P2 special (20,000 ms = 20 s)
+    // Channel 3: P2 special (10,000 ms = 10 s)
     // =========================================================================
     localparam [14:0] LOAD_SHOOT = 15'd500;
-    localparam [14:0] LOAD_SPEC  = 15'd20000;
+    localparam [14:0] LOAD_SPEC  = 15'd10000;
 
     reg [14:0] cd_p1_shoot;
     reg [14:0] cd_p1_spec;
     reg [14:0] cd_p2_shoot;
     reg [14:0] cd_p2_spec;
+
+    reg [6:0]  sub_p1_spec;
+    reg [6:0]  bar_p1_spec;
+    reg [6:0]  sub_p2_spec;
+    reg [6:0]  bar_p2_spec;
 
     // Channel 0: P1 Shoot
     always @(posedge clk or negedge reset_n) begin
@@ -74,12 +83,26 @@ module cooldown_timers #(
 
     // Channel 1: P1 Special
     always @(posedge clk or negedge reset_n) begin
-        if (!reset_n)
-            cd_p1_spec <= 15'd0;
-        else if (trig_p1_spec)
-            cd_p1_spec <= LOAD_SPEC;
-        else if (tick && (cd_p1_spec != 15'd0))
+        if (!reset_n) begin
+            cd_p1_spec  <= 15'd0;
+            sub_p1_spec <= 7'd0;
+            bar_p1_spec <= 7'd100;
+        end else if (trig_p1_spec) begin
+            cd_p1_spec  <= LOAD_SPEC;
+            sub_p1_spec <= 7'd0;
+            bar_p1_spec <= 7'd0;
+        end else if (tick && (cd_p1_spec != 15'd0)) begin
             cd_p1_spec <= cd_p1_spec - 1'b1;
+            if (sub_p1_spec == 7'd99) begin
+                sub_p1_spec <= 7'd0;
+                bar_p1_spec <= bar_p1_spec + 1'b1;
+            end else begin
+                sub_p1_spec <= sub_p1_spec + 1'b1;
+            end
+        end else if (cd_p1_spec == 15'd0) begin
+            bar_p1_spec <= 7'd100;
+            sub_p1_spec <= 7'd0;
+        end
     end
 
     // Channel 2: P2 Shoot
@@ -94,12 +117,26 @@ module cooldown_timers #(
 
     // Channel 3: P2 Special
     always @(posedge clk or negedge reset_n) begin
-        if (!reset_n)
-            cd_p2_spec <= 15'd0;
-        else if (trig_p2_spec)
-            cd_p2_spec <= LOAD_SPEC;
-        else if (tick && (cd_p2_spec != 15'd0))
+        if (!reset_n) begin
+            cd_p2_spec  <= 15'd0;
+            sub_p2_spec <= 7'd0;
+            bar_p2_spec <= 7'd100;
+        end else if (trig_p2_spec) begin
+            cd_p2_spec  <= LOAD_SPEC;
+            sub_p2_spec <= 7'd0;
+            bar_p2_spec <= 7'd0;
+        end else if (tick && (cd_p2_spec != 15'd0)) begin
             cd_p2_spec <= cd_p2_spec - 1'b1;
+            if (sub_p2_spec == 7'd99) begin
+                sub_p2_spec <= 7'd0;
+                bar_p2_spec <= bar_p2_spec + 1'b1;
+            end else begin
+                sub_p2_spec <= sub_p2_spec + 1'b1;
+            end
+        end else if (cd_p2_spec == 15'd0) begin
+            bar_p2_spec <= 7'd100;
+            sub_p2_spec <= 7'd0;
+        end
     end
 
     // Status: 1 when ready (counter == 0)
@@ -110,6 +147,9 @@ module cooldown_timers #(
 
     // Reading TIMER_STATUS (0x8000_0010, d_addr[2] == 1'b0)
     assign rd_tmr = {28'd0, ready_p2_spec, ready_p2_shoot, ready_p1_spec, ready_p1_shoot};
+
+    assign bar_p1_spec_out = bar_p1_spec;
+    assign bar_p2_spec_out = bar_p2_spec;
 
 endmodule
 

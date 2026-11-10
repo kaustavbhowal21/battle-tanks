@@ -5,9 +5,9 @@
 // 1. 1 ms prescaler tick generation.
 // 2. 4 Independent Down-Counter channels:
 //    - P1 Shoot (500 ms)
-//    - P1 Special (20,000 ms)
+//    - P1 Special (10,000 ms)
 //    - P2 Shoot (500 ms)
-//    - P2 Special (20,000 ms)
+//    - P2 Special (10,000 ms)
 // 3. MMIO Write Trigger Decode (0x8000_0014).
 // 4. MMIO Status Read (0x8000_0010): 1 = Ready, 0 = Cooling Down.
 // 5. Automatic transition back to Ready upon count expiration.
@@ -21,6 +21,8 @@ module tb_cooldown_timers;
     reg  [31:0] d_addr;
     reg  [31:0] d_wdata;
     wire [31:0] rd_tmr;
+    wire [6:0]  bar_p1_spec;
+    wire [6:0]  bar_p2_spec;
 
     integer errors = 0;
 
@@ -30,12 +32,14 @@ module tb_cooldown_timers;
     cooldown_timers #(
         .CLK_PER_MS(CLK_PER_MS_SIM)
     ) dut (
-        .clk       (clk),
-        .reset_n   (reset_n),
-        .wr_en_tmr (wr_en_tmr),
-        .d_addr    (d_addr),
-        .d_wdata   (d_wdata),
-        .rd_tmr    (rd_tmr)
+        .clk             (clk),
+        .reset_n         (reset_n),
+        .wr_en_tmr       (wr_en_tmr),
+        .d_addr          (d_addr),
+        .d_wdata         (d_wdata),
+        .rd_tmr          (rd_tmr),
+        .bar_p1_spec_out (bar_p1_spec),
+        .bar_p2_spec_out (bar_p2_spec)
     );
 
     // 50 MHz clock
@@ -137,6 +141,31 @@ module tb_cooldown_timers;
             errors = errors + 1;
         end else begin
             $display("  [PASS] P1 Special and P2 Shoot entered cooldown simultaneously (status = 4'b1001).");
+        end
+
+        if (bar_p1_spec !== 7'd0) begin
+            $display("  [FAIL] P1 Special bar did not immediately reset to 0! Got %0d", bar_p1_spec);
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] P1 Special bar immediately emptied upon trigger (bar = 0).");
+        end
+
+        // =====================================================================
+        // Test 5: Special Attack 10s Down-Count & Bar Fill to 100
+        // =====================================================================
+        $display("  [TEST 5] Simulating 10,001 ms ticks to verify 10s Special Cooldown expiration & full bar...");
+        // Fast-forward 10,001 ms
+        repeat(10001 * CLK_PER_MS_SIM) @(posedge clk);
+
+        #5;
+        if (rd_tmr[1] !== 1'b1) begin
+            $display("  [FAIL] P1 Special timer did not expire back to 1 (ready) after 10s!");
+            errors = errors + 1;
+        end else if (bar_p1_spec !== 7'd100) begin
+            $display("  [FAIL] P1 Special bar did not reach full (100) after 10s! Got %0d", bar_p1_spec);
+            errors = errors + 1;
+        end else begin
+            $display("  [PASS] P1 Special completed 10s cooldown: status ready (bit 1 = 1) and bar full (100).");
         end
 
         $display("==========================================================");
