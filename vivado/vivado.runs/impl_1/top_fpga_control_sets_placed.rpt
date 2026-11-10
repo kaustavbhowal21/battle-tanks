@@ -1,0 +1,233 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (win64) Build 6299465 Fri Nov 14 19:35:11 GMT 2025
+| Date         : Tue Nov 10 17:33:01 2026
+| Host         : SCORPIO running 64-bit major release  (build 9200)
+| Command      : report_control_sets -verbose -file top_fpga_control_sets_placed.rpt
+| Design       : top_fpga
+| Device       : xc7a100t
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Control Set Information
+
+Table of Contents
+-----------------
+1. Summary
+2. Histogram
+3. Flip-Flop Distribution
+4. Detailed Control Set Information
+
+1. Summary
+----------
+
++----------------------------------------------------------+-------+
+|                          Status                          | Count |
++----------------------------------------------------------+-------+
+| Total control sets                                       |   155 |
+|    Minimum number of control sets                        |   155 |
+|    Addition due to synthesis replication                 |     0 |
+|    Addition due to physical synthesis replication        |     0 |
+| Unused register locations in slices containing registers |   224 |
++----------------------------------------------------------+-------+
+* Control sets can be merged at opt_design using control_set_merge or merge_equivalent_drivers
+** Run report_qor_suggestions for automated merging and remapping suggestions
+
+
+2. Histogram
+------------
+
++--------------------+-------+
+|       Fanout       | Count |
++--------------------+-------+
+| Total control sets |   155 |
+| >= 0 to < 4        |     3 |
+| >= 4 to < 6        |     7 |
+| >= 6 to < 8        |     7 |
+| >= 8 to < 10       |     7 |
+| >= 10 to < 12      |     3 |
+| >= 12 to < 14      |     2 |
+| >= 14 to < 16      |     4 |
+| >= 16              |   122 |
++--------------------+-------+
+* Control sets can be remapped at either synth_design or opt_design
+
+
+3. Flip-Flop Distribution
+-------------------------
+
++--------------+-----------------------+------------------------+-----------------+--------------+
+| Clock Enable | Synchronous Set/Reset | Asynchronous Set/Reset | Total Registers | Total Slices |
++--------------+-----------------------+------------------------+-----------------+--------------+
+| No           | No                    | No                     |               7 |            5 |
+| No           | No                    | Yes                    |             498 |          187 |
+| No           | Yes                   | No                     |               0 |            0 |
+| Yes          | No                    | No                     |              34 |           22 |
+| Yes          | No                    | Yes                    |            2789 |         1276 |
+| Yes          | Yes                   | No                     |               0 |            0 |
++--------------+-----------------------+------------------------+-----------------+--------------+
+
+
+4. Detailed Control Set Information
+-----------------------------------
+
++----------------+------------------------------------------------------------+----------------------------------------------+------------------+----------------+--------------+
+|  Clock Signal  |                        Enable Signal                       |               Set/Reset Signal               | Slice Load Count | Bel Load Count | Bels / Slice |
++----------------+------------------------------------------------------------+----------------------------------------------+------------------+----------------+--------------+
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/exception                               | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                1 |              1 |         1.00 |
+|  clk_IBUF_BUFG |                                                            | clk_sys_reg_i_2_n_0                          |                1 |              2 |         2.00 |
+|  clk_sys_BUFG  |                                                            | clk_sys_reg_i_2_n_0                          |                1 |              2 |         2.00 |
+|  clk_sys_BUFG  | u_mmio/uart_bit_cnt[3]_i_1_n_0                             | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                1 |              4 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[3][0]    | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                1 |              4 |         4.00 |
+|  clk_sys_BUFG  | u_keyboard/bit_cnt[3]_i_1_n_0                              | u_keyboard/rst_board_sync2_reg               |                2 |              4 |         2.00 |
+|  clk_sys_BUFG  | pix_ce                                                     |                                              |                1 |              4 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/p1_flash_frames_q_reg[2][0]     | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                2 |              4 |         2.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[7]_0[0]             | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                1 |              5 |         5.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_rv32m/u_div/saved_funct3[0]               | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                2 |              5 |         2.50 |
+|  clk_sys_BUFG  |                                                            |                                              |                5 |              7 |         1.40 |
+|  clk_sys_BUFG  | u_timers/bar_p1_spec[6]_i_1_n_0                            | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                3 |              7 |         2.33 |
+|  clk_sys_BUFG  | u_timers/bar_p2_spec[6]_i_1_n_0                            | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                4 |              7 |         1.75 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[10][0]   | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                2 |              7 |         3.50 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_data_o_reg[3]_4[0]     | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                3 |              7 |         2.33 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_data_o_reg[1]_0[0]     | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                4 |              7 |         1.75 |
+|  clk_sys_BUFG  | u_mmio/p_0_in[0]                                           | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                3 |              7 |         2.33 |
+|  clk_sys_BUFG  | u_sound/tone_volume[7]_i_1_n_0                             | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                4 |              8 |         2.00 |
+|  clk_sys_BUFG  | u_keyboard/rx_byte__0[0]                                   | u_keyboard/rst_board_sync2_reg               |                2 |              8 |         4.00 |
+|  clk_sys_BUFG  | u_sound/noise_volume[7]_i_1_n_0                            | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |              8 |         1.33 |
+|  clk_sys_BUFG  | u_sound/startup_cnt0                                       | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                2 |              8 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[10]_1[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                2 |              8 |         4.00 |
+|  clk_sys_BUFG  | u_mmio/uart_shift_reg[8]_i_1_n_0                           | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                4 |              9 |         2.25 |
+|  clk_sys_BUFG  | u_mmio/uart_baud_cnt[8]_i_1_n_0                            | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                3 |              9 |         3.00 |
+|  clk_sys_BUFG  | u_keyboard/ps2_clk_fall                                    | u_keyboard/rst_board_sync2_reg               |                3 |             10 |         3.33 |
+|  clk_sys_BUFG  | u_sound/sfx_timer_ms[10]_i_1_n_0                           | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             11 |         1.83 |
+|  clk_sys_BUFG  | u_sound/noise_prescale[5]_i_1_n_0                          | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                3 |             11 |         3.67 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/uart_wr_ptr_reg[6]_0            |                                              |                3 |             12 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/uart_wr_ptr_reg[6]              |                                              |                3 |             12 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_data_o_reg[2]_3[0]                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                3 |             15 |         5.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_data_o_reg[3][0]       | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                4 |             15 |         3.75 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_data_o_reg[0]_5[0]                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                5 |             15 |         3.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_data_o_reg[1]_1[0]     | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             15 |         2.50 |
+|  clk_sys_BUFG  | u_sound/lfsr[0]                                            | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                5 |             16 |         3.20 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/health_bar_reg_q[0]             | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                7 |             16 |         2.29 |
+|  clk_sys_BUFG  | u_keyboard/esc_rst_cnt_reg_15_sn_1                         | u_keyboard/rst_board_sync2_reg               |                4 |             16 |         4.00 |
+|  clk_sys_BUFG  | u_sound/tone_div[18]_i_1_n_0                               | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                7 |             19 |         2.71 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[9].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                5 |             20 |         4.00 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[3].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             20 |         3.33 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[10].cnt_q[19]_i_1_n_0               | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                5 |             20 |         4.00 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[2].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                5 |             20 |         4.00 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[5].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                4 |             20 |         5.00 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[4].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                4 |             20 |         5.00 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[11].cnt_q[19]_i_1_n_0               | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             20 |         3.33 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[7].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             20 |         3.33 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[0].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                7 |             20 |         2.86 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[1].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             20 |         3.33 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/ex_mem_mem_write_reg_6[0]       | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               14 |             20 |         1.43 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[2]_1[0]  | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               16 |             20 |         1.25 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[2]_0[0]  | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               14 |             20 |         1.43 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[7]_2                |                                              |                3 |             20 |         6.67 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[6].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                5 |             20 |         4.00 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[8].cnt_q[19]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                7 |             20 |         2.86 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[5]_1[0]  | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               14 |             20 |         1.43 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[3].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[2].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[1].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[11].hold_q[0]_i_1_n_0               | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[0].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[10].hold_q[0]_i_1_n_0               | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[7].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[8].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[6].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[5].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[9].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | u_input/gen_debouncers[4].hold_q[0]_i_1_n_0                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                6 |             21 |         3.50 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[4]_0[0]             | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               14 |             22 |         1.57 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[7]_2[0]  | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               16 |             22 |         1.38 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[5]_0[0]  | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               14 |             22 |         1.57 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[2][0]    | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               13 |             22 |         1.69 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/wb_write_address_o_reg[7]_1[0]  | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               16 |             22 |         1.38 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/ex_mem_mem_write_reg_5[0]       | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               11 |             22 |         2.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/ex_mem_mem_write_reg_3[0]       | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               12 |             22 |         1.83 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/ex_mem_mem_write_reg_4[0]       | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               15 |             22 |         1.47 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[11]_0               |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[2]_1                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[9]_0                |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[3]_1[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               12 |             32 |         2.67 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[3]_2                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[2]_3                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[1]_2                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[10]_2               |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[9]_2                |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[10]_1               |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[0]_1                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | u_collision/scan_q_reg[0]_0                                | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/FSM_onehot_state_reg[2][0]      | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               21 |             32 |         1.52 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[4]_0[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               19 |             32 |         1.68 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[4]_1[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               19 |             32 |         1.68 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[0]_0                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_3[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               13 |             32 |         2.46 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[4]_3[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               16 |             32 |         2.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_5[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               23 |             32 |         1.39 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_2[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               18 |             32 |         1.78 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_4[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               16 |             32 |         2.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_6[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               18 |             32 |         1.78 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[4]_5[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               23 |             32 |         1.39 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_5[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               17 |             32 |         1.88 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_0[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               16 |             32 |         2.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[3]_2[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               19 |             32 |         1.68 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_0[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               20 |             32 |         1.60 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_2[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               29 |             32 |         1.10 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_9[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               19 |             32 |         1.68 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_8[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               23 |             32 |         1.39 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_8[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               16 |             32 |         2.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_3[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               14 |             32 |         2.29 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_9[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               28 |             32 |         1.14 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[3]_0[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               18 |             32 |         1.78 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_1[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               12 |             32 |         2.67 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[4]_4[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               22 |             32 |         1.45 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[4]_6[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               27 |             32 |         1.19 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[4]_2[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               18 |             32 |         1.78 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_6[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               15 |             32 |         2.13 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_4[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               25 |             32 |         1.28 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_1[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               16 |             32 |         2.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[1]_7[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               13 |             32 |         2.46 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/mem_to_reg_o_reg_0[0]           |                                              |               21 |             32 |         1.52 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[2]_7[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               13 |             32 |         2.46 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_dest_reg_sel_reg[3]_3[0] | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               18 |             32 |         1.78 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[11]_3               |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/E[0]                            | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[3]_1                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[9]_5                |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[10]_3               |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[9]_7                |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[11]_1               |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[0]_3                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[10]_0               |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[9]_4                |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[9]_6                |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[0]_2                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[2]_0                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[3]_0                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[9]_1                |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[1]_0                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[2]_2                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[3]_3                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[1]_3                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[11]_2               |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_address_o_reg[9]_3                |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | u_vga_timing/active_reg_1                                  | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/wb_write_byte_o_reg[1]_1                   |                                              |                8 |             32 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/ex_mem_mem_write_reg_10         |                                              |               10 |             40 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/ex_mem_mem_write_reg_11         |                                              |               10 |             40 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/wb_stage/ex_mem_mem_write_reg_0                     |                                              |               10 |             40 |         4.00 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/fetch_pc10_in                   | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               33 |             47 |         1.42 |
+|  clk_sys_BUFG  |                                                            | u_keyboard/rst_board_sync2_reg               |               25 |             56 |         2.24 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/ex_mem_branch_reg_1[0]          | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               22 |             63 |         2.86 |
+|  clk_sys_BUFG  | pipe_u/execute/u_rv32m/u_div/reg_r[31]_i_1_n_0             | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               18 |             64 |         3.56 |
+|  clk_sys_BUFG  | pix_ce                                                     | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               29 |             67 |         2.31 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/FSM_onehot_state_reg[1][0]      | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               24 |             70 |         2.92 |
+|  clk_sys_BUFG  | pipe_u/IF_ID_stage/u_id_ex/mem_write_o_reg_0               | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               44 |             95 |         2.16 |
+|  clk_sys_BUFG  | u_vga_timing/E[0]                                          | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               27 |             96 |         3.56 |
+|  clk_sys_BUFG  | pipe_u/execute/u_ex_mem_wb/E[0]                            | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |               47 |            133 |         2.83 |
+|  clk_sys_BUFG  |                                                            | pipe_u/execute/u_rv32m/u_div/sys_rst_n_q_reg |              160 |            438 |         2.74 |
++----------------+------------------------------------------------------------+----------------------------------------------+------------------+----------------+--------------+
+
+

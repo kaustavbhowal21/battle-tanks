@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenRun Id="impl_1" LaunchPart="xc7a100tcsg324-1" LaunchTime="1794311678">
+  <File Type="PA-TCL" Name="top_fpga.tcl"/>
+  <File Type="REPORTS-TCL" Name="top_fpga_reports.tcl"/>
+  <File Type="INIT-TIMING" Name="top_fpga_timing_summary_init.rpt"/>
+  <File Type="OPT-DCP" Name="top_fpga_opt.dcp"/>
+  <File Type="OPT-DRC" Name="top_fpga_drc_opted.rpt"/>
+  <File Type="OPT-UTIL" Name="top_fpga_utilization_opted.rpt"/>
+  <File Type="OPT-UTIL-PB" Name="top_fpga_utilization_opted.pb"/>
+  <File Type="OPT-METHODOLOGY-DRC" Name="top_fpga_methodology_drc_opted.rpt"/>
+  <File Type="OPT-HWDEF" Name="top_fpga.hwdef"/>
+  <File Type="OPT-TIMING" Name="top_fpga_timing_summary_opted.rpt"/>
+  <File Type="OPT-RQA-PB" Name="top_fpga_rqa_opted.pb"/>
+  <File Type="PWROPT-DCP" Name="top_fpga_pwropt.dcp"/>
+  <File Type="PWROPT-DRC" Name="top_fpga_drc_pwropted.rpt"/>
+  <File Type="PWROPT-TIMING" Name="top_fpga_timing_summary_pwropted.rpt"/>
+  <File Type="PLACE-DCP" Name="top_fpga_placed.dcp"/>
+  <File Type="PLACE-IO" Name="top_fpga_io_placed.rpt"/>
+  <File Type="PLACE-CLK" Name="top_fpga_clock_utilization_placed.rpt"/>
+  <File Type="PLACE-UTIL" Name="top_fpga_utilization_placed.rpt"/>
+  <File Type="PLACE-UTIL-PB" Name="top_fpga_utilization_placed.pb"/>
+  <File Type="PLACE-CTRL" Name="top_fpga_control_sets_placed.rpt"/>
+  <File Type="PLACE-SIMILARITY" Name="top_fpga_incremental_reuse_placed.rpt"/>
+  <File Type="PLACE-PRE-SIMILARITY" Name="top_fpga_incremental_reuse_pre_placed.rpt"/>
+  <File Type="PLACE-TIMING" Name="top_fpga_timing_summary_placed.rpt"/>
+  <File Type="PLACE-RQA-PB" Name="top_fpga_rqa_placed.pb"/>
+  <File Type="POSTPLACE-PWROPT-DCP" Name="top_fpga_postplace_pwropt.dcp"/>
+  <File Type="POSTPLACE-PWROPT-TIMING" Name="top_fpga_timing_summary_postplace_pwropted.rpt"/>
+  <File Type="PHYSOPT-DCP" Name="top_fpga_physopt.dcp"/>
+  <File Type="PHYSOPT-DRC" Name="top_fpga_drc_physopted.rpt"/>
+  <File Type="PHYSOPT-TIMING" Name="top_fpga_timing_summary_physopted.rpt"/>
+  <File Type="ROUTE-ERROR-DCP" Name="top_fpga_routed_error.dcp"/>
+  <File Type="ROUTE-DCP" Name="top_fpga_routed.dcp"/>
+  <File Type="ROUTE-BLACKBOX-DCP" Name="top_fpga_routed_bb.dcp"/>
+  <File Type="ROUTE-UTIL" Name="top_fpga_utilization_routed.rpt"/>
+  <File Type="ROUTE-UTIL-PB" Name="top_fpga_utilization_routed.pb"/>
+  <File Type="ROUTE-DRC" Name="top_fpga_drc_routed.rpt"/>
+  <File Type="ROUTE-DRC-PB" Name="top_fpga_drc_routed.pb"/>
+  <File Type="ROUTE-DRC-RPX" Name="top_fpga_drc_routed.rpx"/>
+  <File Type="ROUTE-METHODOLOGY-DRC" Name="top_fpga_methodology_drc_routed.rpt"/>
+  <File Type="ROUTE-METHODOLOGY-DRC-RPX" Name="top_fpga_methodology_drc_routed.rpx"/>
+  <File Type="ROUTE-METHODOLOGY-DRC-PB" Name="top_fpga_methodology_drc_routed.pb"/>
+  <File Type="ROUTE-PWR" Name="top_fpga_power_routed.rpt"/>
+  <File Type="ROUTE-PWR-SUM" Name="top_fpga_power_summary_routed.pb"/>
+  <File Type="ROUTE-PWR-RPX" Name="top_fpga_power_routed.rpx"/>
+  <File Type="ROUTE-STATUS" Name="top_fpga_route_status.rpt"/>
+  <File Type="ROUTE-STATUS-PB" Name="top_fpga_route_status.pb"/>
+  <File Type="ROUTE-TIMINGSUMMARY" Name="top_fpga_timing_summary_routed.rpt"/>
+  <File Type="ROUTE-TIMING-PB" Name="top_fpga_timing_summary_routed.pb"/>
+  <File Type="ROUTE-TIMING-RPX" Name="top_fpga_timing_summary_routed.rpx"/>
+  <File Type="ROUTE-SIMILARITY" Name="top_fpga_incremental_reuse_routed.rpt"/>
+  <File Type="ROUTE-CLK" Name="top_fpga_clock_utilization_routed.rpt"/>
+  <File Type="ROUTE-BUS-SKEW" Name="top_fpga_bus_skew_routed.rpt"/>
+  <File Type="ROUTE-BUS-SKEW-PB" Name="top_fpga_bus_skew_routed.pb"/>
+  <File Type="ROUTE-BUS-SKEW-RPX" Name="top_fpga_bus_skew_routed.rpx"/>
+  <File Type="ROUTE-RQS-PB" Name="top_fpga_rqs_routed.pb"/>
+  <File Type="POSTROUTE-PHYSOPT-DCP" Name="top_fpga_postroute_physopt.dcp"/>
+  <File Type="POSTROUTE-PHYSOPT-BLACKBOX-DCP" Name="top_fpga_postroute_physopt_bb.dcp"/>
+  <File Type="POSTROUTE-PHYSOPT-TIMING" Name="top_fpga_timing_summary_postroute_physopted.rpt"/>
+  <File Type="POSTROUTE-PHYSOPT-TIMING-PB" Name="top_fpga_timing_summary_postroute_physopted.pb"/>
+  <File Type="POSTROUTE-PHYSOPT-TIMING-RPX" Name="top_fpga_timing_summary_postroute_physopted.rpx"/>
+  <File Type="POSTROUTE-PHYSOPT-BUS-SKEW" Name="top_fpga_bus_skew_postroute_physopted.rpt"/>
+  <File Type="POSTROUTE-PHYSOPT-BUS-SKEW-PB" Name="top_fpga_bus_skew_postroute_physopted.pb"/>
+  <File Type="POSTROUTE-PHYSOPT-BUS-SKEW-RPX" Name="top_fpga_bus_skew_postroute_physopted.rpx"/>
+  <File Type="NOC_TRAFFIC_SPEC_FILE" Name="top_fpga.nts"/>
+  <File Type="NOC_SOLUTION_FILE" Name="top_fpga.ncr"/>
+  <File Type="BG-BIT" Name="top_fpga.bit"/>
+  <File Type="BG-BIN" Name="top_fpga.bin"/>
+  <File Type="BITSTR-MSK" Name="top_fpga.msk"/>
+  <File Type="BITSTR-RBT" Name="top_fpga.rbt"/>
+  <File Type="BITSTR-NKY" Name="top_fpga.nky"/>
+  <File Type="BITSTR-BMM" Name="top_fpga_bd.bmm"/>
+  <File Type="BITSTR-MMI" Name="top_fpga.mmi"/>
+  <File Type="PDI-FILE" Name="top_fpga.pdi"/>
+  <File Type="BOOT-PDI-FILE" Name="top_fpga_boot.pdi"/>
+  <File Type="PL-PDI-FILE" Name="top_fpga_pld.pdi"/>
+  <File Type="RCFI_FILE" Name="top_fpga.rcfi"/>
+  <File Type="CFI_FILE" Name="top_fpga.cfi"/>
+  <File Type="RNPI_FILE" Name="top_fpga.rnpi"/>
+  <File Type="RCDO-FILE" Name="top_fpga.rcdo"/>
+  <File Type="MARKER-RNPI-FILE" Name="top_fpga_markers.rnpi"/>
+  <File Type="MARKER-RCDO-FILE" Name="top_fpga_markers.rcdo"/>
+  <File Type="BOOT_RNPI_FILE" Name="top_fpga_boot.rnpi"/>
+  <File Type="BOOT_MARKER_RNPI_FILE" Name="top_fpga_boot_markers.rnpi"/>
+  <File Type="PL_RNPI_FILE" Name="top_fpga_pld.rnpi"/>
+  <File Type="PL_MARKER_RNPI_FILE" Name="top_fpga_pld_markers.rnpi"/>
+  <File Type="PL_MASK_RNPI_FILE" Name="top_fpga_pld_mask.rnpi"/>
+  <File Type="PL_SHUTDOWN_RNPI_FILE" Name="top_fpga_pld_shutdown.rnpi"/>
+  <File Type="PL_UNMASK_RNPI_FILE" Name="top_fpga_pld_unmask.rnpi"/>
+  <File Type="PL-RCDO-FILE" Name="top_fpga_pld.rcdo"/>
+  <File Type="PL-CLEAR-RCDO-FILE" Name="top_fpga_pld_clear.rcdo"/>
+  <File Type="PL_MARKER_RCDO_FILE" Name="top_fpga_pld_markers.rcdo"/>
+  <File Type="PL_MASK_RCDO_FILE" Name="top_fpga_pld_mask.rcdo"/>
+  <File Type="PL_UNMASK_MARKER_RCDO_FILE" Name="top_fpga_pld_unmask_markers.rcdo"/>
+  <File Type="PL_UNMASK_RCDO_FILE" Name="top_fpga_pld_unmask.rcdo"/>
+  <File Type="NPI_FILE" Name="top_fpga.npi"/>
+  <File Type="RBD_FILE" Name="top_fpga.rbd"/>
+  <File Type="MMI-FILE" Name="top_fpga.mmi"/>
+  <File Type="BIF-FILE" Name="top_fpga.bif"/>
+  <File Type="BOOT-BIF-FILE" Name="top_fpga_boot.bif"/>
+  <File Type="PL-BIF-FILE" Name="top_fpga_pld.bif"/>
+  <File Type="LTX-FILE" Name="top_fpga.ltx"/>
+  <File Type="BOOT-LTX-FILE" Name="top_fpga_boot.ltx"/>
+  <File Type="PL-LTX-FILE" Name="top_fpga_pld.ltx"/>
+  <File Type="BITSTR-LTX" Name="debug_nets.ltx"/>
+  <File Type="BITSTR-LTX" Name="top_fpga.ltx"/>
+  <File Type="BITSTR-SYSDEF" Name="top_fpga.sysdef"/>
+  <File Type="BG-BGN" Name="top_fpga.bgn"/>
+  <File Type="BG-DRC" Name="top_fpga.drc"/>
+  <File Type="RDI-RDI" Name="top_fpga.vdi"/>
+  <File Type="WBT-USG" Name="usage_statistics_webtalk.html"/>
+  <File Type="ROUTE-RQS" Name="top_fpga_routed.rqs"/>
+  <File Type="POSTROUTE-PHYSOPT-RQS" Name="top_fpga_postroute_physopted.rqs"/>
+  <File Type="ROUTE-RQS-RPT" Name="route_report_qor_suggestions_0.rpt"/>
+  <File Type="POSTROUTE-PHYSOPT-RQS-RPT" Name="postroute_physopt_report_qor_suggestions_0.rpt"/>
+  <FileSet Name="sources" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
+    <Filter Type="Srcs"/>
+    <File Path="$PPRDIR/../dmem.hex">
+      <FileInfo SFType="MEM">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../imem.hex">
+      <FileInfo SFType="MEM">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/opcode.vh">
+      <FileInfo>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+        <Attr Name="IsVisible" Val="1"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/divider_radix2.v">
+      <FileInfo>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/multiplier_dsp.v">
+      <FileInfo>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/top_rv32m.v">
+      <FileInfo>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/game_engine/collision_engine.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/game_engine/cooldown_timers.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/vga/health_hud.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/game_engine/input_controller.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/game_engine/maze_tile_ram.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/vga/maze_tile_renderer.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/firmware_imem.vh">
+      <FileInfo>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+        <Attr Name="IsVisible" Val="1"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/firmware_dmem.vh">
+      <FileInfo>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+        <Attr Name="IsVisible" Val="1"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/memory.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/game_engine/mmio_interconnect.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/execute.v">
+      <FileInfo SFType="VHeader">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+        <Attr Name="IsVisible" Val="1"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/IF_ID.v">
+      <FileInfo SFType="VHeader">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+        <Attr Name="IsVisible" Val="1"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/wb.v">
+      <FileInfo SFType="VHeader">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+        <Attr Name="IsVisible" Val="1"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/cpu/pipeline.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/vga/pixel_priority_mixer.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/game_engine/ps2_keyboard_controller.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/audio/sound_engine.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/vga/sprite_engine.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/game_engine/sprite_hud_regfile.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/vga/vga_timing_gen.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PPRDIR/../modules/top_fpga.v">
+      <FileInfo SFType="SVerilog">
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <Config>
+      <Option Name="DesignMode" Val="RTL"/>
+      <Option Name="TopModule" Val="top_fpga"/>
+    </Config>
+  </FileSet>
+  <FileSet Name="constrs_in" Type="Constrs" RelSrcDir="$PSRCDIR/constrs_1" RelGenDir="$PGENDIR/constrs_1">
+    <Filter Type="Constrs"/>
+    <File Path="$PPRDIR/../modules/constraints.xdc">
+      <FileInfo>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+      </FileInfo>
+    </File>
+    <Config>
+      <Option Name="ConstrsType" Val="XDC"/>
+    </Config>
+  </FileSet>
+  <FileSet Name="utils" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
+    <Filter Type="Utils"/>
+    <File Path="$PSRCDIR/utils_1/imports/synth_1/top_fpga.dcp">
+      <FileInfo>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedInSteps" Val="synth_1"/>
+        <Attr Name="AutoDcp" Val="1"/>
+      </FileInfo>
+    </File>
+    <Config>
+      <Option Name="TopAutoSet" Val="TRUE"/>
+    </Config>
+  </FileSet>
+  <Strategy Version="1" Minor="2">
+    <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2025">
+      <Desc>Default settings for Implementation.</Desc>
+    </StratHandle>
+    <Step Id="init_design"/>
+    <Step Id="opt_design"/>
+    <Step Id="power_opt_design"/>
+    <Step Id="place_design"/>
+    <Step Id="post_place_power_opt_design"/>
+    <Step Id="phys_opt_design"/>
+    <Step Id="route_design"/>
+    <Step Id="post_route_phys_opt_design"/>
+    <Step Id="write_bitstream"/>
+  </Strategy>
+</GenRun>
