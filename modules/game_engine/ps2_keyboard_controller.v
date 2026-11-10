@@ -73,8 +73,8 @@ module ps2_keyboard_controller #(
             data_sync <= 2'b11;
         end else begin
             // Treat unconstrained/floating 'z' or 'x' in simulation as idle high (1'b1)
-            clk_sync  <= {clk_sync[0],  (ps2_clk === 1'b0)  ? 1'b0 : 1'b1};
-            data_sync <= {data_sync[0], (ps2_data === 1'b0) ? 1'b0 : 1'b1};
+            clk_sync  <= {clk_sync[0],  (ps2_clk == 1'b0)  ? 1'b0 : 1'b1};
+            data_sync <= {data_sync[0], (ps2_data == 1'b0) ? 1'b0 : 1'b1};
         end
     end
 

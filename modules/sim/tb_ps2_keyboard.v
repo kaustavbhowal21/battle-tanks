@@ -232,6 +232,22 @@ module tb_ps2_keyboard;
         check_condition("ESC released deasserts esc_reset (esc_reset==0)", esc_reset == 1'b0);
 
         // ---------------------------------------------------------------------
+        // Test 12: W, D, Up Arrow, Down Arrow simultaneously
+        // ---------------------------------------------------------------------
+        $display("\n--- Test 12: P1 (W + D) and P2 (Up + Down) ---");
+        send_ps2_byte(8'h1D); // W make
+        send_ps2_byte(8'h23); // D make
+        send_ps2_byte(8'hE0); send_ps2_byte(8'h75); // Up Arrow make
+        send_ps2_byte(8'hE0); send_ps2_byte(8'h72); // Down Arrow make
+        #50;
+        $display("  p1_controls = 6'b%b (expected 001001: RIGHT=1, FWD=1)", p1_controls);
+        $display("  p2_controls = 6'b%b (expected 000011: BWD=1, FWD=1)", p2_controls);
+        $display("  esc_reset   = %b", esc_reset);
+        check_condition("P1 controls has W and D active", p1_controls == 6'b001001);
+        check_condition("P2 controls has Up and Down active", p2_controls == 6'b000011);
+        check_condition("esc_reset is NOT asserted", esc_reset == 1'b0);
+
+        // ---------------------------------------------------------------------
         // Final Summary
         // ---------------------------------------------------------------------
         $display("\n==========================================================");

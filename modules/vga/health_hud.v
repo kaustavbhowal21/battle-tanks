@@ -299,17 +299,23 @@ module health_hud (
         end
     endfunction
 
-    function [7:0] sys_ctrl_char;
-        input [2:0] idx;
+    function [7:0] title_char;
+        input [3:0] idx;
         begin
             case (idx)
-                3'd0: sys_ctrl_char = "S";
-                3'd1: sys_ctrl_char = "Y";
-                3'd2: sys_ctrl_char = "S";
-                3'd3: sys_ctrl_char = "T";
-                3'd4: sys_ctrl_char = "E";
-                3'd5: sys_ctrl_char = "M";
-                default: sys_ctrl_char = " ";
+                4'd0:  title_char = "B";
+                4'd1:  title_char = "A";
+                4'd2:  title_char = "T";
+                4'd3:  title_char = "T";
+                4'd4:  title_char = "L";
+                4'd5:  title_char = "E";
+                4'd6:  title_char = " ";
+                4'd7:  title_char = "T";
+                4'd8:  title_char = "A";
+                4'd9:  title_char = "N";
+                4'd10: title_char = "K";
+                4'd11: title_char = "S";
+                default: title_char = " ";
             endcase
         end
     endfunction
@@ -457,7 +463,7 @@ module health_hud (
         end
     endfunction
 
-    // Multi-Character Keycap Pixel Sampler (SPACE, ENTER, SHIFT, ESC)
+    // Multi-Character Keycap Pixel Sampler (SPACE, ENTER, ESC)
     function [2:0] keycap_multi_sample;
         input [9:0] cur_x, cur_y;
         input [9:0] box_x, box_y;
@@ -469,6 +475,8 @@ module health_hud (
         reg [2:0] ch_idx;
         reg [7:0] ch;
         reg [63:0] g;
+        reg [2:0] char_col;
+        reg [2:0] char_row;
         begin
             if ((cur_x >= box_x) && (cur_x < box_x + {4'd0, box_w}) &&
                 (cur_y >= box_y) && (cur_y < box_y + 10'd14)) begin
@@ -479,6 +487,7 @@ module health_hud (
                     keycap_multi_sample = 3'b000;
                 end else begin
                     is_border = (u == 6'd0 || u == box_w - 6'd1 || v == 4'd0 || v == 4'd13);
+                    char_row = 3'd7 - (v[2:0] - 3'd3);
                     if (box_w == 6'd46) begin
                         // 5 characters centered at u in 3..42, v in 3..10
                         in_text = (u >= 6'd3 && u <= 6'd42 && v >= 4'd3 && v <= 4'd10);
@@ -486,17 +495,19 @@ module health_hud (
                         case (key_type)
                             2'd0: ch = space_key_char(ch_idx);
                             2'd1: ch = enter_key_char(ch_idx);
-                            default: ch = shift_key_char(ch_idx);
+                            default: ch = enter_key_char(ch_idx);
                         endcase
                         g = char_glyph(ch);
-                        gbit = in_text && g[{3'd7 - (v[2:0] - 3'd3), 3'd7 - ((u - 6'd3) & 6'd7)}];
+                        char_col = 3'd7 - (u[2:0] - 3'd3);
+                        gbit = in_text && g[{char_row, char_col}];
                     end else begin
                         // 3 characters (ESC) centered at u in 4..27, v in 3..10
                         in_text = (u >= 6'd4 && u <= 6'd27 && v >= 4'd3 && v <= 4'd10);
                         ch_idx = (u - 6'd4) >> 3;
                         ch = esc_key_char(ch_idx[1:0]);
                         g = char_glyph(ch);
-                        gbit = in_text && g[{3'd7 - (v[2:0] - 3'd3), 3'd7 - ((u - 6'd4) & 6'd7)}];
+                        char_col = 3'd7 - (u[2:0] - 3'd4);
+                        gbit = in_text && g[{char_row, char_col}];
                     end
                     keycap_multi_sample = {1'b1, is_border, gbit};
                 end
@@ -538,47 +549,55 @@ module health_hud (
     endfunction
 
     // Keycap Sample Instances
-    wire [2:0] samp_w    = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd94,  "W")   : 3'b000;
-    wire [2:0] samp_a    = in_hud_strip ? keycap14_sample(dx, y, 10'd12, 10'd110, "A")   : 3'b000;
-    wire [2:0] samp_s    = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd110, "S")   : 3'b000;
-    wire [2:0] samp_d    = in_hud_strip ? keycap14_sample(dx, y, 10'd44, 10'd110, "D")   : 3'b000;
-    wire [2:0] samp_e    = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd146, "E")   : 3'b000;
-    wire [2:0] samp_spc  = in_hud_strip ? keycap_multi_sample(dx, y, 10'd12, 10'd128, 6'd46, 2'd0) : 3'b000;
+    // P1 Controls: stuck to top (y = 76..151)
+    wire [2:0] samp_w    = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd88,  "W")   : 3'b000;
+    wire [2:0] samp_a    = in_hud_strip ? keycap14_sample(dx, y, 10'd12, 10'd104, "A")   : 3'b000;
+    wire [2:0] samp_s    = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd104, "S")   : 3'b000;
+    wire [2:0] samp_d    = in_hud_strip ? keycap14_sample(dx, y, 10'd44, 10'd104, "D")   : 3'b000;
+    wire [2:0] samp_spc  = in_hud_strip ? keycap_multi_sample(dx, y, 10'd12, 10'd121, 6'd46, 2'd0) : 3'b000;
+    wire [2:0] samp_e    = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd138, "E")   : 3'b000;
 
-    wire [2:0] samp_esc  = in_hud_strip ? keycap_multi_sample(dx, y, 10'd16, 10'd192, 6'd32, 2'd3) : 3'b000;
+    // Center Section: BATTLE TANKS title banner & ESC Reset (y = 216..245)
+    wire [2:0] samp_esc  = in_hud_strip ? keycap_multi_sample(dx, y, 10'd16, 10'd232, 6'd32, 2'd3) : 3'b000;
 
-    wire [2:0] samp_up   = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd244, 8'h01) : 3'b000;
-    wire [2:0] samp_left = in_hud_strip ? keycap14_sample(dx, y, 10'd12, 10'd260, 8'h03) : 3'b000;
-    wire [2:0] samp_down = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd260, 8'h02) : 3'b000;
-    wire [2:0] samp_rght = in_hud_strip ? keycap14_sample(dx, y, 10'd44, 10'd260, 8'h04) : 3'b000;
-    wire [2:0] samp_ent  = in_hud_strip ? keycap_multi_sample(dx, y, 10'd12, 10'd278, 6'd46, 2'd1) : 3'b000;
-    wire [2:0] samp_shf  = in_hud_strip ? keycap_multi_sample(dx, y, 10'd12, 10'd296, 6'd46, 2'd2) : 3'b000;
+    // P2 Controls: stuck to bottom (y = 302..377)
+    wire [2:0] samp_up   = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd314, 8'h01) : 3'b000;
+    wire [2:0] samp_left = in_hud_strip ? keycap14_sample(dx, y, 10'd12, 10'd330, 8'h03) : 3'b000;
+    wire [2:0] samp_down = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd330, 8'h02) : 3'b000;
+    wire [2:0] samp_rght = in_hud_strip ? keycap14_sample(dx, y, 10'd44, 10'd330, 8'h04) : 3'b000;
+    wire [2:0] samp_ent  = in_hud_strip ? keycap_multi_sample(dx, y, 10'd12, 10'd347, 6'd46, 2'd1) : 3'b000;
+    wire [2:0] samp_p    = in_hud_strip ? keycap14_sample(dx, y, 10'd28, 10'd364, "P")   : 3'b000;
 
     // Text Label Instances
-    wire bit_p1_move = in_hud_strip && text_sample(dx, y, 10'd66, 10'd105, 4'd8, 2'd0);
-    wire bit_p1_shot = in_hud_strip && text_sample(dx, y, 10'd66, 10'd131, 4'd5, 2'd1);
-    wire bit_p1_spec = in_hud_strip && text_sample(dx, y, 10'd66, 10'd149, 4'd7, 2'd2);
-    wire bit_sys_rst = in_hud_strip && text_sample(dx, y, 10'd66, 10'd195, 4'd5, 2'd3);
-    wire bit_p2_move = in_hud_strip && text_sample(dx, y, 10'd66, 10'd255, 4'd8, 2'd0);
-    wire bit_p2_shot = in_hud_strip && text_sample(dx, y, 10'd66, 10'd281, 4'd5, 2'd1);
-    wire bit_p2_spec = in_hud_strip && text_sample(dx, y, 10'd66, 10'd299, 4'd7, 2'd2);
+    wire bit_p1_move = in_hud_strip && text_sample(dx, y, 10'd66, 10'd99,  4'd8, 2'd0);
+    wire bit_p1_shot = in_hud_strip && text_sample(dx, y, 10'd66, 10'd124, 4'd5, 2'd1);
+    wire bit_p1_spec = in_hud_strip && text_sample(dx, y, 10'd66, 10'd141, 4'd7, 2'd2);
+
+    wire bit_sys_rst = in_hud_strip && text_sample(dx, y, 10'd66, 10'd235, 4'd5, 2'd3);
+
+    wire bit_p2_move = in_hud_strip && text_sample(dx, y, 10'd66, 10'd325, 4'd8, 2'd0);
+    wire bit_p2_shot = in_hud_strip && text_sample(dx, y, 10'd66, 10'd350, 4'd5, 2'd1);
+    wire bit_p2_spec = in_hud_strip && text_sample(dx, y, 10'd66, 10'd367, 4'd7, 2'd2);
 
     // Section Header Banners
-    wire in_p1_hdr  = in_hud_strip && (y >= 10'd80)  && (y <= 10'd87)  && (dx >= 10'd8) && (dx <= 10'd151);
-    wire in_sys_hdr = in_hud_strip && (y >= 10'd180) && (y <= 10'd187) && (dx >= 10'd8) && (dx <= 10'd151);
-    wire in_p2_hdr  = in_hud_strip && (y >= 10'd230) && (y <= 10'd237) && (dx >= 10'd8) && (dx <= 10'd151);
+    wire in_p1_hdr    = in_hud_strip && (y >= 10'd76)  && (y <= 10'd83)  && (dx >= 10'd8) && (dx <= 10'd151);
+    wire in_title_hdr = in_hud_strip && (y >= 10'd216) && (y <= 10'd225) && (dx >= 10'd8) && (dx <= 10'd151);
+    wire in_p2_hdr    = in_hud_strip && (y >= 10'd302) && (y <= 10'd309) && (dx >= 10'd8) && (dx <= 10'd151);
 
+    wire [2:0] p1_h_py = y - 10'd76;
     wire [9:0] p1_h_dx = dx - 10'd36;
     wire [63:0] p1_h_g = char_glyph(p1_ctrl_char(p1_h_dx[6:3]));
-    wire p1_hdr_bit = in_p1_hdr && (dx >= 10'd36 && dx <= 10'd123) && p1_h_g[{3'd7 - (y[2:0] - 3'd0), 3'd7 - p1_h_dx[2:0]}];
+    wire p1_hdr_bit = in_p1_hdr && (dx >= 10'd36 && dx <= 10'd123) && p1_h_g[{3'd7 - p1_h_py, 3'd7 - p1_h_dx[2:0]}];
 
-    wire [9:0] sys_h_dx = dx - 10'd56;
-    wire [63:0] sys_h_g = char_glyph(sys_ctrl_char(sys_h_dx[5:3]));
-    wire sys_hdr_bit = in_sys_hdr && (dx >= 10'd56 && dx <= 10'd103) && sys_h_g[{3'd7 - (y[2:0] - 3'd0), 3'd7 - sys_h_dx[2:0]}];
+    wire [2:0] title_py = y - 10'd217;
+    wire [9:0] title_dx = dx - 10'd32;
+    wire [63:0] title_g = char_glyph(title_char(title_dx[6:3]));
+    wire title_bit = in_title_hdr && (y >= 10'd217 && y <= 10'd224) && (dx >= 10'd32 && dx <= 10'd127) && title_g[{3'd7 - title_py, 3'd7 - title_dx[2:0]}];
 
+    wire [2:0] p2_h_py = y - 10'd302;
     wire [9:0] p2_h_dx = dx - 10'd36;
     wire [63:0] p2_h_g = char_glyph(p2_ctrl_char(p2_h_dx[6:3]));
-    wire p2_hdr_bit = in_p2_hdr && (dx >= 10'd36 && dx <= 10'd123) && p2_h_g[{3'd7 - (y[2:0] - 3'd6), 3'd7 - p2_h_dx[2:0]}];
+    wire p2_hdr_bit = in_p2_hdr && (dx >= 10'd36 && dx <= 10'd123) && p2_h_g[{3'd7 - p2_h_py, 3'd7 - p2_h_dx[2:0]}];
 
     // =========================================================================
     // 7. Master Priority Pixel Multiplexer
@@ -607,11 +626,11 @@ module health_hud (
         // P2 Banner & Health Digits
         else if (in_p2_banner) begin
             hit_hud = 1'b1;
-            rgb_hud = 12'h902; // P2 Red Banner
+            rgb_hud = 12'hD00; // P2 Bright Red Banner
         end
         else if (in_p2_digits && p2_dig_bit) begin
             hit_hud = 1'b1;
-            rgb_hud = 12'hFA4; // Bright Orange-Yellow Digits
+            rgb_hud = 12'hFFA; // Bright White-Yellow Digits
         end
 
         // Special Attack Cooldown Displays
@@ -639,28 +658,29 @@ module health_hud (
             rgb_hud = 12'h012;
         end
 
+        // P2 Special Cooldown (Bright Red, matching P2 theme & labels)
         else if (in_p2_spec_banner) begin
             hit_hud = 1'b1;
-            rgb_hud = 12'h620;
+            rgb_hud = 12'hD00; // Bright Crimson Red Banner
         end
         else if (in_p2_spec_digits && p2_sdig_bit) begin
             hit_hud = 1'b1;
-            rgb_hud = (bar_p2_spec >= 7'd100) ? 12'hFF4 : 12'hE81;
+            rgb_hud = 12'hFFF; // Crisp White Digits
         end
         else if (in_p2_bar_border) begin
             hit_hud = 1'b1;
-            rgb_hud = 12'h743;
+            rgb_hud = 12'hF22; // Bright Red Border
         end
         else if (in_p2_bar_fill) begin
             hit_hud = 1'b1;
             if (bar_p2_spec >= 7'd100)
-                rgb_hud = (y == 10'd396 || y == 10'd397) ? 12'hFFE : 12'hFA0;
+                rgb_hud = (y == 10'd396 || y == 10'd397) ? 12'hFFA : 12'hF00; // Ready: Gold highlight + Bright Red
             else
-                rgb_hud = (y == 10'd396) ? 12'hFB6 : 12'hC50;
+                rgb_hud = (y == 10'd396) ? 12'hF66 : 12'hD00; // Charging: Red highlight + Bright Red
         end
         else if (in_p2_bar_empty) begin
             hit_hud = 1'b1;
-            rgb_hud = 12'h210;
+            rgb_hud = 12'h300; // Dark Red Cavity
         end
 
         // Hearts Rows
@@ -691,7 +711,7 @@ module health_hud (
             end
         end
 
-        // --- P1 Header Banner ---
+        // --- P1 Header Banner (Top) ---
         else if (in_p1_hdr) begin
             hit_hud = 1'b1;
             rgb_hud = p1_hdr_bit ? 12'h5DF : 12'h014;
@@ -735,10 +755,13 @@ module health_hud (
             rgb_hud = 12'h0FF;
         end
 
-        // --- System Reset Section ---
-        else if (in_sys_hdr) begin
+        // --- Center Banner: BATTLE TANKS & System Reset ---
+        else if (in_title_hdr) begin
             hit_hud = 1'b1;
-            rgb_hud = sys_hdr_bit ? 12'hFFF : 12'h223;
+            if (y == 10'd216 || y == 10'd225)
+                rgb_hud = 12'h88A; // Metallic frame
+            else
+                rgb_hud = title_bit ? 12'hFE2 : 12'h113; // Glowing arcade gold on deep navy/steel plate
         end
         else if (samp_esc[2]) begin
             hit_hud = 1'b1;
@@ -749,35 +772,35 @@ module health_hud (
             rgb_hud = 12'hF88;
         end
 
-        // --- P2 Header Banner ---
+        // --- P2 Header Banner (Bottom) ---
         else if (in_p2_hdr) begin
             hit_hud = 1'b1;
-            rgb_hud = p2_hdr_bit ? 12'hFB4 : 12'h410;
+            rgb_hud = p2_hdr_bit ? 12'hFFF : 12'hD00; // Bright Red Banner with White Text
         end
         // --- P2 Keycaps ---
         else if (samp_up[2]) begin
             hit_hud = 1'b1;
-            rgb_hud = samp_up[0] ? 12'hFFF : (samp_up[1] ? (p2_keys[0] ? 12'hFB4 : 12'h88A) : (p2_keys[0] ? 12'h520 : 12'h223));
+            rgb_hud = samp_up[0] ? 12'hFFF : (samp_up[1] ? (p2_keys[0] ? 12'hFB4 : 12'h88A) : (p2_keys[0] ? 12'hD00 : 12'h223));
         end
         else if (samp_left[2]) begin
             hit_hud = 1'b1;
-            rgb_hud = samp_left[0] ? 12'hFFF : (samp_left[1] ? (p2_keys[2] ? 12'hFB4 : 12'h88A) : (p2_keys[2] ? 12'h520 : 12'h223));
+            rgb_hud = samp_left[0] ? 12'hFFF : (samp_left[1] ? (p2_keys[2] ? 12'hFB4 : 12'h88A) : (p2_keys[2] ? 12'hD00 : 12'h223));
         end
         else if (samp_down[2]) begin
             hit_hud = 1'b1;
-            rgb_hud = samp_down[0] ? 12'hFFF : (samp_down[1] ? (p2_keys[1] ? 12'hFB4 : 12'h88A) : (p2_keys[1] ? 12'h520 : 12'h223));
+            rgb_hud = samp_down[0] ? 12'hFFF : (samp_down[1] ? (p2_keys[1] ? 12'hFB4 : 12'h88A) : (p2_keys[1] ? 12'hD00 : 12'h223));
         end
         else if (samp_rght[2]) begin
             hit_hud = 1'b1;
-            rgb_hud = samp_rght[0] ? 12'hFFF : (samp_rght[1] ? (p2_keys[3] ? 12'hFB4 : 12'h88A) : (p2_keys[3] ? 12'h520 : 12'h223));
+            rgb_hud = samp_rght[0] ? 12'hFFF : (samp_rght[1] ? (p2_keys[3] ? 12'hFB4 : 12'h88A) : (p2_keys[3] ? 12'hD00 : 12'h223));
         end
         else if (samp_ent[2]) begin
             hit_hud = 1'b1;
-            rgb_hud = samp_ent[0] ? 12'hFFF : (samp_ent[1] ? (p2_keys[4] ? 12'hFB4 : 12'h88A) : (p2_keys[4] ? 12'h520 : 12'h223));
+            rgb_hud = samp_ent[0] ? 12'hFFF : (samp_ent[1] ? (p2_keys[4] ? 12'hFB4 : 12'h88A) : (p2_keys[4] ? 12'hD00 : 12'h223));
         end
-        else if (samp_shf[2]) begin
+        else if (samp_p[2]) begin
             hit_hud = 1'b1;
-            rgb_hud = samp_shf[0] ? 12'hFFF : (samp_shf[1] ? (p2_keys[5] ? 12'hFB4 : 12'h88A) : (p2_keys[5] ? 12'h520 : 12'h223));
+            rgb_hud = samp_p[0] ? 12'hFFF : (samp_p[1] ? (p2_keys[5] ? 12'hFB4 : 12'h88A) : (p2_keys[5] ? 12'hD00 : 12'h223));
         end
         // --- P2 Labels ---
         else if (bit_p2_move) begin
@@ -790,7 +813,7 @@ module health_hud (
         end
         else if (bit_p2_spec) begin
             hit_hud = 1'b1;
-            rgb_hud = 12'hFA0;
+            rgb_hud = 12'hF33; // Bright Red Label for Special
         end
     end
 

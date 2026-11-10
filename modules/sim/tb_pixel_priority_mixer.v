@@ -59,7 +59,6 @@ module tb_pixel_priority_mixer;
         .tank_rgb_p1   (tank_rgb_p1),
         .tank_valid_p2 (tank_valid_p2),
         .tank_rgb_p2   (tank_rgb_p2),
-        .maze_wall     (maze_wall),
         .maze_rgb      (maze_rgb),
         .vga_r         (vga_r),
         .vga_g         (vga_g),

@@ -107,9 +107,10 @@ module input_controller #(
     end
 
     // MMIO Read Mux (Fig 3 Part B)
-    // d_addr[2] == 0 -> P1_INPUT_REG (0x8000_0000)
-    // d_addr[2] == 1 -> P2_INPUT_REG (0x8000_0004)
-    assign rd_in = d_addr[2] ? {26'd0, p2_btn_stable} : {26'd0, p1_btn_stable};
+    // d_addr[2] == 0 -> P1_INPUT_REG (0x8000_0000): [5:0]=stable buttons, [13:8]=edge latches
+    // d_addr[2] == 1 -> P2_INPUT_REG (0x8000_0004): [5:0]=stable buttons, [13:8]=edge latches
+    assign rd_in = d_addr[2] ? {18'd0, edge_latched_q[11:6], 2'd0, p2_btn_stable} :
+                               {18'd0, edge_latched_q[5:0],  2'd0, p1_btn_stable};
 
 endmodule
 

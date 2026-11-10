@@ -213,10 +213,10 @@ module sprite_engine (
             big_rgb       <= 12'h000;
         end else begin
             tank_valid_p1 <= hit_t1;
-            tank_rgb_p1   <= (hit_t1 && (p1_hit_flash_en === 1'b1)) ? 12'hFFF : rgb_t1;
+            tank_rgb_p1   <= (hit_t1 && (p1_hit_flash_en == 1'b1)) ? 12'hFFF : rgb_t1;
 
             tank_valid_p2 <= hit_t2;
-            tank_rgb_p2   <= (hit_t2 && (p2_hit_flash_en === 1'b1)) ? 12'hFFF : rgb_t2;
+            tank_rgb_p2   <= (hit_t2 && (p2_hit_flash_en == 1'b1)) ? 12'hFFF : rgb_t2;
 
             bullet_valid  <= |bullet_norm_hit;
             bullet_rgb    <= 12'hFF2; // Bright incandescent yellow

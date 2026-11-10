@@ -72,8 +72,8 @@ module data_mem #(
     input  [3:0]  wstrb
 );
 
-    // 1024 words = 4 KB, word addressable
-    (* ram_style = "block" *)
+    // 1024 words = 4 KB, word addressable (Distributed LUTRAM accommodates byte-forwarding bypass)
+    (* ram_style = "distributed" *)
     reg [31:0] dmem [0:1023];
 
     // Decode byte address to word index

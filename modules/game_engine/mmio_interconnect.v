@@ -92,6 +92,7 @@ module mmio_interconnect (
     wire cs_sim_out = mmio_sel && (d_addr[11:2] == 10'h002); // 0x8000_0008
     wire cs_sim_res = mmio_sel && (d_addr[11:2] == 10'h003); // 0x8000_000C
 
+    (* ram_style = "distributed" *)
     reg [7:0]  uart_fifo [0:127];
     reg [6:0]  uart_wr_ptr;
     reg [6:0]  uart_rd_ptr;
@@ -107,6 +108,13 @@ module mmio_interconnect (
     wire uart_push       = d_we && cs_sim_out && !uart_fifo_full;
     wire uart_pop        = !uart_tx_busy && !uart_fifo_empty;
 
+    // Dedicated synchronous write for FIFO RAM (infers Distributed RAM cleanly)
+    always @(posedge clk) begin
+        if (uart_push) begin
+            uart_fifo[uart_wr_ptr] <= d_wdata[7:0];
+        end
+    end
+
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             uart_wr_ptr    <= 7'd0;
@@ -117,9 +125,8 @@ module mmio_interconnect (
             uart_bit_cnt   <= 4'd0;
             uart_tx_busy   <= 1'b0;
         end else begin
-            // FIFO write
+            // Advance FIFO write pointer
             if (uart_push) begin
-                uart_fifo[uart_wr_ptr] <= d_wdata[7:0];
                 uart_wr_ptr <= uart_wr_ptr + 7'd1;
             end
 

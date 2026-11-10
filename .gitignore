@@ -59,6 +59,7 @@ dkms.conf
 # Vivado Simulator & Synthesis Artifacts
 xsim.dir/
 .Xil/
+vivado/
 *.log
 *.pb
 *.jou

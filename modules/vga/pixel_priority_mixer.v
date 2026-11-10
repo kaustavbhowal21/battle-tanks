@@ -42,7 +42,6 @@ module pixel_priority_mixer (
     input  wire [11:0] tank_rgb_p2,
 
     // Layer 5: Maze Tiles (Walls & Arena Floor)
-    input  wire        maze_wall,
     input  wire [11:0] maze_rgb,
 
     // Physical 12-bit DAC VGA output pins (to Nexys A7 resistor ladder)
@@ -89,10 +88,8 @@ module pixel_priority_mixer (
             selected_rgb = tank_rgb_p1;
         else if (tank_valid_p2)
             selected_rgb = tank_rgb_p2;
-        else if (maze_wall)
-            selected_rgb = maze_rgb;
         else
-            selected_rgb = maze_rgb; // Arena floor or black
+            selected_rgb = maze_rgb; // Arena floor, walls, or blank background
     end
 
     // =========================================================================

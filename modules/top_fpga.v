@@ -159,6 +159,7 @@ module top_fpga #(
     wire [31:0] rd_in;
     wire [31:0] rd_tmr;
     wire [31:0] rd_col;
+    wire [31:0] rd_perf;
     wire [31:0] rd_maze;
 
     // Interconnect chip-selects and write strobes
@@ -237,6 +238,7 @@ module top_fpga #(
         .rd_in       (rd_in),
         .rd_tmr      (rd_tmr),
         .rd_col      (rd_col),
+        .rd_perf     (rd_perf),
         .rd_maze     (rd_maze),
 
         .cs_dmem     (cs_dmem),
@@ -390,6 +392,8 @@ module top_fpga #(
     // =========================================================================
     // 9. Hardware Collision Engine (Fig 6a..6d)
     // =========================================================================
+    wire [2:0] col_scan_idx;
+
     collision_engine u_collision (
         .clk                   (clk_sys),
         .reset_n               (rst_n),
@@ -679,7 +683,6 @@ module top_fpga #(
         .tank_rgb_p1   (spr_tank_rgb_p1),
         .tank_valid_p2 (spr_tank_valid_p2),
         .tank_rgb_p2   (spr_tank_rgb_p2),
-        .maze_wall     (maze_pixel_wall),
         .maze_rgb      (maze_pixel_rgb),
         .vga_r         (vga_r),
         .vga_g         (vga_g),
